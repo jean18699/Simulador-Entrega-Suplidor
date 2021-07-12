@@ -7,11 +7,10 @@ public class Main {
 
     public static void main(String[] args)
     {
-        MongoClient mongoClient = new MongoClient("mongodb://localhost:27017");
-        MongoDatabase db = mongoClient.getDatabase("Ventas");
-        MongoCollection<Document> ordenes = db.getCollection("Ordenes");
+        MongoClient mongoClient = new MongoClient("localhost",27017);
+        MongoDatabase db = mongoClient.getDatabase("inventario");
+        MongoCollection<Document> articulos = db.getCollection("articulos");
 
-        System.out.println(ordenes.count());
 
     }
 
