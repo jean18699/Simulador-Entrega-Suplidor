@@ -4,11 +4,11 @@ package Modelo;
 public class ArticuloSuplidor {
 
     private long codigoSuplidor;
-    private long codigoArticulo;
+    private String codigoArticulo;
     private long tiempoEntrega;
     private float precioCompra;
 
-    public ArticuloSuplidor(long codigoSuplidor, long codigoArticulo, long tiempoEntrega, float precioCompra) {
+    public ArticuloSuplidor(long codigoSuplidor, String codigoArticulo, long tiempoEntrega, float precioCompra) {
         this.codigoSuplidor = codigoSuplidor;
         this.codigoArticulo = codigoArticulo;
         this.tiempoEntrega = tiempoEntrega;
@@ -23,11 +23,11 @@ public class ArticuloSuplidor {
         this.codigoSuplidor = codigoSuplidor;
     }
 
-    public long getCodigoArticulo() {
+    public String getCodigoArticulo() {
         return codigoArticulo;
     }
 
-    public void setCodigoArticulo(long codigoArticulo) {
+    public void setCodigoArticulo(String codigoArticulo) {
         this.codigoArticulo = codigoArticulo;
     }
 

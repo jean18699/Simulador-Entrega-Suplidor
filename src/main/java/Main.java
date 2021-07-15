@@ -1,5 +1,6 @@
 import Modelo.Almacen;
 import Modelo.Articulo;
+import Modelo.ArticuloSuplidor;
 import Modelo.Inventario;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -31,9 +32,9 @@ public class Main {
         //AREA DE PRUEBAS=============================================================//
         
         Inventario inv = new Inventario(db);
-        //inv.agregarArticulo(new Articulo("MON-001",1,50,"Monitor"));
-       // inv.agregarArticulo(new Articulo("MON-002",1,50,"Monitor"));
-        //inv.agregarArticulo(new Articulo("MON-002",2,50,"Monitor"));
+        inv.agregarArticulo(new Articulo("MON-001",1,50,"Monitor"));
+        inv.agregarArticulo(new Articulo("MON-002",1,50,"Monitor"));
+        inv.agregarArticulo(new Articulo("MON-002",2,50,"Monitor"));
 
          //inv.realizarMovimiento("MON-001",1,"SALIDA",30);
 
@@ -42,6 +43,8 @@ public class Main {
 
        // alm.realizarMovimiento("Salida",1,3);
         //System.out.println(alm.getArticulos().get(0).getCantidad());
+
+        inv.agregarArticuloSuplidor(new ArticuloSuplidor(50, "a", (long) 10.2, 85));
 
 
     }

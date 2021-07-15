@@ -17,12 +17,16 @@ import static com.mongodb.client.model.Filters.eq;
 public class Inventario {
 
     private List<Articulo> articulos;
+    private List<ArticuloSuplidor> articulosSuplidores;
     private MongoCollection<Document> db_articulos;
+    private MongoCollection<Document> db_articulosSuplidores;
 
     public Inventario(MongoDatabase db)
     {
         db_articulos = db.getCollection("articulos");
+        db_articulosSuplidores = db.getCollection("articulosSuplidores");
         cargarArticulos();
+        cargarArticulosSuplidores();
     }
 
     private void cargarArticulos()
@@ -52,6 +56,36 @@ public class Inventario {
         }
     }
 
+    private void cargarArticulosSuplidores()
+    {
+        articulosSuplidores = new ArrayList<>();
+        ArticuloSuplidor articuloSuplidor;
+
+        List<Document> parametrosAggregate = new ArrayList<>();
+
+        parametrosAggregate.add(new Document("$project", new Document("_id",0)
+            .append("codigoSuplidor", "$codigoSuplidor")
+            .append("codigoArticulo", "$codigoArticulo")
+            .append("tiempoEntrega", "$tiempoEntrega")
+            .append("precioCompra", "$precioCompra")
+        ));
+
+        List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
+        // Document almacenArticuloSuplidor;
+        for(Document doc : cursorArticulosSuplidores) {
+            // almacenArticuloSuplidor = (Document) doc.get("almacen");
+
+            articuloSuplidor = new ArticuloSuplidor(
+                    Long.parseLong(doc.get("codigoSuplidor").toString()),
+                    doc.get("codigoArticulo").toString(),
+                    Long.parseLong(doc.get("tiempoEntrega").toString()),
+                    Long.parseLong(doc.get("precioCompra").toString())
+            );
+            articulosSuplidores.add(articuloSuplidor);
+        }
+    }
+
+
     public void agregarArticulo(Articulo articulo){
         articulos.add(articulo);
         Document doc_articulo = new Document();
@@ -61,6 +95,16 @@ public class Inventario {
                 .append("balanceActual",articulo.getAlmacen().getBalanceActual()));
 
         db_articulos.insertOne(doc_articulo);
+    }
+
+    public void agregarArticuloSuplidor(ArticuloSuplidor articuloSuplidor) {
+        articulosSuplidores.add(articuloSuplidor);
+        Document doc_articuloSuplidor = new Document();
+        doc_articuloSuplidor
+            .append("codigoSuplidor", articuloSuplidor.getCodigoSuplidor())
+            .append("codigoArticulo", articuloSuplidor.getCodigoArticulo())
+            .append("tiempoEntrega", articuloSuplidor.getTiempoEntrega())
+            .append("precioCompra", articuloSuplidor.getTiempoEntrega());
     }
 
     //Funcion para realizar un movimiento. Tambien actualiza la base de datos
