@@ -24,7 +24,7 @@ public class Inventario {
     public Inventario(MongoDatabase db)
     {
         db_articulos = db.getCollection("articulos");
-        db_articulosSuplidores = db.getCollection("articulosSuplidores");
+        db_articulosSuplidores = db.getCollection("articuloSuplidor");
         cargarArticulos();
         cargarArticulosSuplidores();
     }
@@ -79,7 +79,7 @@ public class Inventario {
                     Long.parseLong(doc.get("codigoSuplidor").toString()),
                     doc.get("codigoArticulo").toString(),
                     Long.parseLong(doc.get("tiempoEntrega").toString()),
-                    Long.parseLong(doc.get("precioCompra").toString())
+                    Float.parseFloat(doc.get("precioCompra").toString())
             );
             articulosSuplidores.add(articuloSuplidor);
         }
@@ -104,7 +104,9 @@ public class Inventario {
             .append("codigoSuplidor", articuloSuplidor.getCodigoSuplidor())
             .append("codigoArticulo", articuloSuplidor.getCodigoArticulo())
             .append("tiempoEntrega", articuloSuplidor.getTiempoEntrega())
-            .append("precioCompra", articuloSuplidor.getTiempoEntrega());
+            .append("precioCompra", articuloSuplidor.getPrecioCompra());
+
+        db_articulosSuplidores.insertOne(doc_articuloSuplidor);
     }
 
     //Funcion para realizar un movimiento. Tambien actualiza la base de datos
@@ -142,4 +144,35 @@ public class Inventario {
         db_articulos.updateOne(and(filtros),update);
     }
 
+    public List<Articulo> getArticulos() {
+        return articulos;
+    }
+
+    public void setArticulos(List<Articulo> articulos) {
+        this.articulos = articulos;
+    }
+
+    public List<ArticuloSuplidor> getArticulosSuplidores() {
+        return articulosSuplidores;
+    }
+
+    public void setArticulosSuplidores(List<ArticuloSuplidor> articulosSuplidores) {
+        this.articulosSuplidores = articulosSuplidores;
+    }
+
+    public MongoCollection<Document> getDb_articulos() {
+        return db_articulos;
+    }
+
+    public void setDb_articulos(MongoCollection<Document> db_articulos) {
+        this.db_articulos = db_articulos;
+    }
+
+    public MongoCollection<Document> getDb_articulosSuplidores() {
+        return db_articulosSuplidores;
+    }
+
+    public void setDb_articulosSuplidores(MongoCollection<Document> db_articulosSuplidores) {
+        this.db_articulosSuplidores = db_articulosSuplidores;
+    }
 }
