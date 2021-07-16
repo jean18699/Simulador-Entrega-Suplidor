@@ -1,7 +1,4 @@
-import Modelo.Almacen;
-import Modelo.Articulo;
-import Modelo.ArticuloSuplidor;
-import Modelo.Inventario;
+import Modelo.*;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -14,7 +11,9 @@ import io.swagger.models.auth.In;
 import io.swagger.v3.oas.models.info.Info;
 import org.bson.Document;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Random;
 
 public class Main {
@@ -23,28 +22,30 @@ public class Main {
         MongoClient mongoClient = new MongoClient("localhost", 27017);
         MongoDatabase db = mongoClient.getDatabase("inventario");
 
-
         Javalin app = Javalin.create(config -> {
-            // config.addStaticFiles("/publico"); //desde la carpeta de resources
             config.registerPlugin(new RouteOverviewPlugin("/rutas")); //aplicando plugins de las rutas
             config.enableCorsForAllOrigins();
             config.registerPlugin(new OpenApiPlugin(getOpenApiOptions()));
         }).start(7000);
 
         //AREA DE PRUEBAS=============================================================//
+        LocalDate date = LocalDate.parse("2021-07-20");
+        ArrayList<ArticuloOrdenado> ordenados = new ArrayList<>();
+        ordenados.add(new ArticuloOrdenado("MOU-001",3,10));
+        ordenados.add(new ArticuloOrdenado("MOU-002",2,50));
+
 
         Inventario inv = new Inventario(db);
+        inv.nuevaOrden(new OrdenCompra(1,date,ordenados));
 
-       //GENERADORES AUTOMATICOS TERMINADOS (EJECUTAR 1 SOLA VEZ!!!!! SI DESEAS OTRO RESULTADO BORRA LOS DATOS ANTERIORES EN MONGO Y EJECUTA ESTO DE NUEVO)
+
+        //GENERADORES AUTOMATICOS TERMINADOS (EJECUTAR 1 SOLA VEZ!!!!! SI DESEAS OTRO RESULTADO BORRA LOS DATOS ANTERIORES EN MONGO Y EJECUTA ESTO DE NUEVO)
         //generarArticuloSuplidor(inv, 10);
         //generarArticulos(inv);
 
 
-
-
-
-
-
+       // System.out.println(inv.realizarMovimiento("MOU-001",2,"SALIDA",10));
+        //System.out.println(inv.getPromedioConsumoArticulo("MOU-001",2));
 
 
 
@@ -53,7 +54,7 @@ public class Main {
         //   inv.agregarArticulo(new Articulo("MON-002",1,50,"Monitor"));
         // inv.agregarArticulo(new Articulo("MON-002",2,50,"Monitor"));
 
-        //inv.realizarMovimiento("MON-001",1,"SALIDA",30);
+
 
         //alm.agregarArticulo(art1);
         //alm.realizarMovimiento("salida",2,50);

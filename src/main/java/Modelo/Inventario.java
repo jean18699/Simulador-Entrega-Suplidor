@@ -1,15 +1,17 @@
 package Modelo;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
@@ -18,15 +20,23 @@ public class Inventario {
 
     private List<Articulo> articulos;
     private List<ArticuloSuplidor> articulosSuplidores;
+    private List<Movimiento> movimientosInventario;
+    private List<OrdenCompra> ordenesCompra;
     private MongoCollection<Document> db_articulos;
     private MongoCollection<Document> db_articulosSuplidores;
+    private MongoCollection<Document> db_movimientoInventario;
+    private MongoCollection<Document> db_ordenCompra;
 
     public Inventario(MongoDatabase db)
     {
         db_articulos = db.getCollection("articulos");
         db_articulosSuplidores = db.getCollection("articuloSuplidor");
+        db_movimientoInventario = db.getCollection("movimientoInventario");
+        db_ordenCompra = db.getCollection("ordenCompra");
+        ordenesCompra = new ArrayList<>();
         cargarArticulos();
         cargarArticulosSuplidores();
+        cargarMovimientosInventario();
     }
 
     private void cargarArticulos()
@@ -53,6 +63,38 @@ public class Inventario {
                     doc.get("descripcion").toString()
             );
             articulos.add(articulo);
+        }
+    }
+
+    private void cargarMovimientosInventario()
+    {
+        movimientosInventario = new ArrayList<>();
+        Movimiento movimiento;
+
+        List<Document> parametrosAggregate = new ArrayList<>();
+
+        parametrosAggregate.add(new Document("$project", new Document("_id",0)
+                .append("codigoMovimiento", "$codigoMovimiento")
+                .append("codigoAlmacen","$codigoAlmacen")
+                .append("tipoMovimiento", "$tipoMovimiento")
+                .append("codigoArticulo", "$codigoArticulo")
+                .append("cantidad", "$cantidad")
+        ));
+
+        List<Document> cursorMovimientos = db_movimientoInventario.aggregate(parametrosAggregate).into(new ArrayList<>());
+
+        for(Document doc : cursorMovimientos) {
+
+            movimiento = new Movimiento(
+                    Long.parseLong(doc.get("codigoMovimiento").toString()),
+                    doc.get("codigoArticulo").toString(),
+                    Long.parseLong(doc.get("codigoAlmacen").toString()),
+                    doc.get("tipoMovimiento").toString(),
+                    Long.parseLong(doc.get("cantidad").toString())
+
+            );
+
+            movimientosInventario.add(movimiento);
         }
     }
 
@@ -101,36 +143,105 @@ public class Inventario {
         articulosSuplidores.add(articuloSuplidor);
         Document doc_articuloSuplidor = new Document();
         doc_articuloSuplidor
-            .append("codigoSuplidor", articuloSuplidor.getCodigoSuplidor())
-            .append("codigoArticulo", articuloSuplidor.getCodigoArticulo())
-            .append("tiempoEntrega", articuloSuplidor.getTiempoEntrega())
-            .append("precioCompra", articuloSuplidor.getPrecioCompra());
+                .append("codigoSuplidor", articuloSuplidor.getCodigoSuplidor())
+                .append("codigoArticulo", articuloSuplidor.getCodigoArticulo())
+                .append("tiempoEntrega", articuloSuplidor.getTiempoEntrega())
+                .append("precioCompra", articuloSuplidor.getPrecioCompra());
 
         db_articulosSuplidores.insertOne(doc_articuloSuplidor);
     }
 
-    //Funcion para realizar un movimiento. Tambien actualiza la base de datos
-    public void realizarMovimiento(String codigoArticulo, long codigoAlmacen, String tipoMovimiento, long cantidad)
-    {
-        Almacen articulo;
+    public void nuevaOrden(OrdenCompra orden){
 
+        LocalDate fechaActual = LocalDate.now();
+        orden.setFechaOrden(fechaActual);
+        ordenesCompra.add(orden);
+
+        Document doc_orden = new Document();
+        List<DBObject> arrayArticulos = new ArrayList<>();
+
+
+        doc_orden.append("codigoOrden",orden.getCodigoOrden())
+                .append("codigoSuplidor",orden.getCodigoSuplidor())
+                .append("fechaOrden",fechaActual)
+                .append("fechaRequerida",orden.getFechaRequerida());
+
+        List<Document> articulosOrdenados = new ArrayList<>();
+
+        for(ArticuloOrdenado articulo : orden.getArticulos())
+        {
+            articulosOrdenados.add(new Document("codigoArticulo",articulo.getCodigoArticulo())
+                    .append("cantidadOrdenada",articulo.getCantidadOrdenada())
+                    .append("precioCompra",articulo.getPrecioCompra()));
+        }
+
+
+        doc_orden.append("articulos",articulosOrdenados);
+        db_ordenCompra.insertOne(doc_orden);
+    }
+
+    //Funcion para realizar un movimiento. Tambien actualiza la base de datos
+    public long realizarMovimiento(String codigoArticulo, long codigoAlmacen, String tipoMovimiento, long cantidad)
+    {
+        Almacen almacenArticulo = null;
+        Movimiento movimiento = new Movimiento(codigoArticulo,codigoAlmacen,tipoMovimiento,cantidad);
+
+        Document doc_movimiento = new Document();
         for(Articulo art : articulos)
         {
             if(art.getCodigoArticulo().equalsIgnoreCase(codigoArticulo) && art.getAlmacen().getCodigoAlmacen() == codigoAlmacen)
             {
-                articulo = art.getAlmacen();
+                almacenArticulo = art.getAlmacen();
+                doc_movimiento
+                        .append("codigoMovimiento", movimiento.getCodigoMovimiento())
+                        .append("codigoAlmacen",codigoAlmacen)
+                        .append("tipoMovimiento", tipoMovimiento)
+                        .append("codigoArticulo", codigoArticulo)
+                        .append("cantidad", cantidad);
 
                 if(tipoMovimiento.equalsIgnoreCase("ENTRADA"))
                 {
-                    articulo.setBalanceActual(articulo.getBalanceActual() + cantidad);
-                    actualizarCantidadArticuloBD(art.getCodigoArticulo(),articulo.getCodigoAlmacen(),articulo.getBalanceActual());
+                    almacenArticulo.setBalanceActual(almacenArticulo.getBalanceActual() + cantidad);
                 }else
                 {
-                    articulo.setBalanceActual(Math.max(0,articulo.getBalanceActual() - cantidad));
-                    actualizarCantidadArticuloBD(art.getCodigoArticulo(),articulo.getCodigoAlmacen(),articulo.getBalanceActual());
+                    almacenArticulo.setBalanceActual(Math.max(0,almacenArticulo.getBalanceActual() - cantidad));
+                }
+                actualizarCantidadArticuloBD(art.getCodigoArticulo(),almacenArticulo.getCodigoAlmacen(),almacenArticulo.getBalanceActual());
+                db_movimientoInventario.insertOne(doc_movimiento);
+                break;
+            }
+        }
+
+        return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
+    }
+
+    private long getPromedioConsumoArticulo(String codigoArticulo, long codigoAlmacen)
+    {
+        long contador = 0;
+        long cantidadConsumida = 0;
+
+        for(int i = 0; i < movimientosInventario.size();i++)
+        {
+            if(movimientosInventario.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
+            {
+
+                if(movimientosInventario.get(i).getCodigoAlmacen() == codigoAlmacen)
+                {
+                    if(movimientosInventario.get(i).getTipoMovimiento().equalsIgnoreCase("SALIDA"))
+                    {
+
+                        cantidadConsumida += movimientosInventario.get(i).getCantidad();
+                        contador += 1;
+                    }
                 }
             }
         }
+        if(contador == 0)
+        {
+            contador = 1;
+        }
+        System.out.println(Math.ceil(cantidadConsumida / contador));
+        return (long) Math.ceil(cantidadConsumida / contador);
     }
 
     private void actualizarCantidadArticuloBD(String codigoArticulo, long codigoAlmacen, long cantidad)
