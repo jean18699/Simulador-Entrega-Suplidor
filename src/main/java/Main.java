@@ -1,3 +1,4 @@
+import Controladores.InventarioControlador;
 import Modelo.*;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -23,20 +24,23 @@ public class Main {
         MongoDatabase db = mongoClient.getDatabase("inventario");
 
         Javalin app = Javalin.create(config -> {
+            config.addStaticFiles("/bootstrap-5.0.1-dist"); //desde la carpeta de resources
             config.registerPlugin(new RouteOverviewPlugin("/rutas")); //aplicando plugins de las rutas
             config.enableCorsForAllOrigins();
             config.registerPlugin(new OpenApiPlugin(getOpenApiOptions()));
         }).start(7000);
 
-        //AREA DE PRUEBAS=============================================================//
-        LocalDate date = LocalDate.parse("2021-07-20");
-        ArrayList<ArticuloOrdenado> ordenados = new ArrayList<>();
-        ordenados.add(new ArticuloOrdenado("MOU-001",3,10));
-        ordenados.add(new ArticuloOrdenado("MOU-002",2,50));
-
-
         Inventario inv = new Inventario(db);
-        inv.nuevaOrden(new OrdenCompra(1,date,ordenados));
+        new InventarioControlador(app,inv).aplicarRutas();
+
+        //AREA DE PRUEBAS=============================================================//
+        //ArrayList<ArticuloOrdenado> ordenados = new ArrayList<>();
+        //ordenados.add(new ArticuloOrdenado("MOU-001",3,10));
+        //ordenados.add(new ArticuloOrdenado("MOU-002",2,50));
+
+
+       // Inventario inv = new Inventario(db);
+        //inv.nuevaOrden(new OrdenCompra(1,date,ordenados));
 
 
         //GENERADORES AUTOMATICOS TERMINADOS (EJECUTAR 1 SOLA VEZ!!!!! SI DESEAS OTRO RESULTADO BORRA LOS DATOS ANTERIORES EN MONGO Y EJECUTA ESTO DE NUEVO)
