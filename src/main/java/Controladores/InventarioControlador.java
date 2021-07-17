@@ -18,6 +18,7 @@ public class InventarioControlador {
     public InventarioControlador(Javalin app, Inventario inventario){
         this.app = app;
         this.inventario = inventario;
+        modelo.put("listaConsumos",inventario.getListaConsumos());
         modelo.put("listaArticulos",inventario.getArticulos());
         JavalinRenderer.register(JavalinThymeleaf.INSTANCE, ".html");
 
@@ -32,9 +33,10 @@ public class InventarioControlador {
         });
 
         app.post("/realizarMovimiento",ctx -> {
-            System.out.println(ctx.formParamMap());
+
             inventario.realizarMovimiento(ctx.formParam("codigoArticulo"),Long.parseLong(ctx.formParam("codigoAlmacen"))
             ,ctx.formParam("tipoMovimiento"),Long.parseLong(ctx.formParam("cantidad")));
+
 
             ctx.redirect("/");
         });

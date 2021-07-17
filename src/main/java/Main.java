@@ -44,7 +44,7 @@ public class Main {
 
 
         //GENERADORES AUTOMATICOS TERMINADOS (EJECUTAR 1 SOLA VEZ!!!!! SI DESEAS OTRO RESULTADO BORRA LOS DATOS ANTERIORES EN MONGO Y EJECUTA ESTO DE NUEVO)
-        //generarArticuloSuplidor(inv, 10);
+       // generarArticuloSuplidor(inv, 10);
         //generarArticulos(inv);
 
 

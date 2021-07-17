@@ -22,21 +22,25 @@ public class Inventario {
     private List<ArticuloSuplidor> articulosSuplidores;
     private List<Movimiento> movimientosInventario;
     private List<OrdenCompra> ordenesCompra;
+    private List<ConsumoDiario> listaConsumos;
     private MongoCollection<Document> db_articulos;
     private MongoCollection<Document> db_articulosSuplidores;
     private MongoCollection<Document> db_movimientoInventario;
     private MongoCollection<Document> db_ordenCompra;
+    private MongoCollection<Document> db_consumoDiario;
 
     public Inventario(MongoDatabase db)
     {
         db_articulos = db.getCollection("articulos");
         db_articulosSuplidores = db.getCollection("articuloSuplidor");
         db_movimientoInventario = db.getCollection("movimientoInventario");
+        db_consumoDiario = db.getCollection("consumoDiario");
         db_ordenCompra = db.getCollection("ordenCompra");
         ordenesCompra = new ArrayList<>();
         cargarArticulos();
         cargarArticulosSuplidores();
         cargarMovimientosInventario();
+        cargarConsumosDiarios();
     }
 
     private void cargarArticulos()
@@ -93,8 +97,28 @@ public class Inventario {
                     Long.parseLong(doc.get("cantidad").toString())
 
             );
-
             movimientosInventario.add(movimiento);
+        }
+
+    }
+
+    private void cargarConsumosDiarios()
+    {
+        listaConsumos = new ArrayList<>();
+        ConsumoDiario consumo;
+
+        List<Document> parametrosAggregate = new ArrayList<>();
+
+        parametrosAggregate.add(new Document("$project", new Document("_id",0)
+                .append("codigoArticulo", "$codigoArticulo")
+                .append("promedioConsumo", "$promedioConsumo")
+        ));
+
+        List<Document> cursorMovimientos = db_consumoDiario.aggregate(parametrosAggregate).into(new ArrayList<>());
+
+        for(Document doc : cursorMovimientos) {
+            consumo = new ConsumoDiario(doc.get("codigoArticulo").toString(), Long.parseLong(doc.get("promedioConsumo").toString()));
+            listaConsumos.add(consumo);
         }
     }
 
@@ -137,6 +161,18 @@ public class Inventario {
                 .append("balanceActual",articulo.getAlmacen().getBalanceActual()));
 
         db_articulos.insertOne(doc_articulo);
+    }
+
+    private void agregarConsumoDiario(ConsumoDiario consumoDiario)
+    {
+        System.out.println(consumoDiario.getPromedioConsumo());
+        listaConsumos.add(consumoDiario);
+        Document doc_consumoDiario = new Document();
+        doc_consumoDiario
+                .append("codigoArticulo", consumoDiario.getCodigoArticulo())
+                .append("promedioConsumo", consumoDiario.getPromedioConsumo());
+
+        db_consumoDiario.insertOne(doc_consumoDiario);
     }
 
     public void agregarArticuloSuplidor(ArticuloSuplidor articuloSuplidor) {
@@ -207,10 +243,28 @@ public class Inventario {
                     almacenArticulo.setBalanceActual(Math.max(0,almacenArticulo.getBalanceActual() - cantidad));
                 }
                 actualizarCantidadArticuloBD(art.getCodigoArticulo(),almacenArticulo.getCodigoAlmacen(),almacenArticulo.getBalanceActual());
+                movimientosInventario.add(movimiento);
                 db_movimientoInventario.insertOne(doc_movimiento);
                 break;
             }
         }
+
+        if(tipoMovimiento.equalsIgnoreCase("SALIDA"))
+        {
+            for(int i = 0; i < listaConsumos.size(); i++)
+            {
+                if(listaConsumos.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
+                {
+                    listaConsumos.get(i).setPromedioConsumo(getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen));
+                    actualizarConsumoDiarioBD(codigoArticulo,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen));
+                    return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
+                }
+            }
+            agregarConsumoDiario(new ConsumoDiario(codigoArticulo,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen)));
+        }
+
+
+
 
         return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
     }
@@ -236,11 +290,12 @@ public class Inventario {
                 }
             }
         }
+
         if(contador == 0)
         {
             contador = 1;
         }
-        System.out.println(Math.ceil(cantidadConsumida / contador));
+
         return (long) Math.ceil(cantidadConsumida / contador);
     }
 
@@ -254,6 +309,18 @@ public class Inventario {
         update.put("$set",doc);
         db_articulos.updateOne(and(filtros),update);
     }
+
+    private void actualizarConsumoDiarioBD(String codigoArticulo, long promedioConsumo)
+    {
+        Bson[] filtros = {eq("codigoArticulo",codigoArticulo)};
+        BasicDBObject doc = new BasicDBObject();
+        BasicDBObject update = new BasicDBObject();
+
+        doc.put("promedioConsumo",promedioConsumo);
+        update.put("$set",doc);
+        db_consumoDiario.updateOne(and(filtros),update);
+    }
+
 
     public List<Articulo> getArticulos() {
         return articulos;
@@ -285,5 +352,29 @@ public class Inventario {
 
     public void setDb_articulosSuplidores(MongoCollection<Document> db_articulosSuplidores) {
         this.db_articulosSuplidores = db_articulosSuplidores;
+    }
+
+    public List<Movimiento> getMovimientosInventario() {
+        return movimientosInventario;
+    }
+
+    public void setMovimientosInventario(List<Movimiento> movimientosInventario) {
+        this.movimientosInventario = movimientosInventario;
+    }
+
+    public List<OrdenCompra> getOrdenesCompra() {
+        return ordenesCompra;
+    }
+
+    public void setOrdenesCompra(List<OrdenCompra> ordenesCompra) {
+        this.ordenesCompra = ordenesCompra;
+    }
+
+    public List<ConsumoDiario> getListaConsumos() {
+        return listaConsumos;
+    }
+
+    public void setListaConsumos(List<ConsumoDiario> listaConsumos) {
+        this.listaConsumos = listaConsumos;
     }
 }

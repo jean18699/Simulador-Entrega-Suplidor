@@ -22,45 +22,48 @@
     <div class="row">&nbsp;</div>
 
     <div class="row justify-content-center">
-        <form th:action="@{/realizarMovimiento}" method="post">
+    <div class="row">
+        <div class="col-12">
+            <form th:action="@{/realizarMovimiento}" method="post">
 
-            <div class="row">
+                <div class="row">
 
-                <div class="col-2">
-                    <label for="codigoArticulo" class="form-label"><b>Codigo del articulo:</b></label>
-                    <input type="text" id="codigoArticulo"  class="form-control" name="codigoArticulo" fullwidth required>
+                    <div class="col-2">
+                        <label for="codigoArticulo" class="form-label"><b>Codigo del articulo:</b></label>
+                        <input type="text" id="codigoArticulo"  class="form-control" name="codigoArticulo" fullwidth required>
+                    </div>
+
+
+                    <div class="col-2">
+                        <label for="codigoAlmacen" class="form-label"><b>Codigo del Almacen</b></label>
+                        <input  type="text" id="codigoAlmacen"  class="form-control" name="codigoAlmacen" fullwidth required>
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="col-2">
+                        <label for="tipoMovimiento" class="form-label"><b>Tipo de movimiento</b></label>
+                        <select id="tipoMovimiento"  class="form-select" name="tipoMovimiento" fullwidth required>
+                            <option value="ENTRADA">ENTRADA</option>
+                            <option value="SALIDA">SALIDA</option>
+                        </select>
+                    </div>
+
+                    <div class="col-2">
+                        <label for="cantidad" class="form-label"><b>Cantidad</b></label>
+                        <input type="number" min="1" id="cantidad"  class="form-control" name="cantidad" fullwidth required>
+                    </div>
+                </div>
+                <div class="row">&nbsp;</div>
+                <div class="row">
+                    <div class="col-2">
+                        <button name="realizarMovimiento"  type="submit" class="btn btn- btn-primary">Realizar Movimiento</button>
+                    </div>
                 </div>
 
-
-                <div class="col-2">
-                    <label for="codigoAlmacen" class="form-label"><b>Codigo del Almacen</b></label>
-                    <input  type="text" id="codigoAlmacen"  class="form-control" name="codigoAlmacen" fullwidth required>
-                </div>
-
-            </div>
-            <div class="row">
-                <div class="col-2">
-                    <label for="tipoMovimiento" class="form-label"><b>Tipo de movimiento</b></label>
-                    <select id="tipoMovimiento"  class="form-select" name="tipoMovimiento" fullwidth required>
-                        <option value="ENTRADA">ENTRADA</option>
-                        <option value="SALIDA">SALIDA</option>
-                    </select>
-                </div>
-
-                <div class="col-2">
-                    <label for="cantidad" class="form-label"><b>Cantidad</b></label>
-                    <input type="number" min="1" id="cantidad"  class="form-control" name="cantidad" fullwidth required>
-                </div>
-            </div>
-            <div class="row">&nbsp;</div>
-            <div class="row">
-                <div class="col-2">
-                    <button name="realizarMovimiento"  type="submit" class="btn btn- btn-primary">Realizar Movimiento</button>
-                </div>
-            </div>
-
-        </form>
-
+            </form>
+        </div>
+    </div>
     </div>
 
     <div class="row">&nbsp;</div>
@@ -68,33 +71,86 @@
         <h2 class="h4" align="left">Balance Inventario</h2>
     </div>
 
-    <form id="accion"  th:action="@{carrito/comprar}" method="post">
-        <div style="position: relative;height: 400px;overflow: auto;display: block;">
-                 <table style="width: 25%;" class="table table-hover table-bordered">
-                    <thead class="thead-light">
-                        <tr align="center">
-                            <th scope="col">Codigo Articulo</th>
-                            <th scope="col">Descripcion</th>
-                            <th scope="col">CodigoAlmacen</th>
-                            <th scope="col">Balance</th>
+    <table style="width: 38%" class="table table-striped">
+        <thead class="thead-light">
+        <tr align="center">
+            <th scope="col">Codigo Articulo</th>
+            <th scope="col">Descripcion</th>
+            <th scope="col">CodigoAlmacen</th>
+            <th scope="col">Balance</th>
 
-                        </tr>
-                    </thead>
-                    <tbody  class="table-hover">
-                        <tr align="center" th:each="articulo : ${listaArticulos}">
-                            <td th:text="${articulo.codigoArticulo}">Pasola</td>
-                            <td th:text="${articulo.descripcion}" >1</td>
-                            <td th:text="${articulo.almacen.codigoAlmacen}">1000</td>
-                            <td th:text="${articulo.almacen.balanceActual}">1000</td>
+        </tr>
+        </thead>
+        <tbody class="table-hover">
+        <tr align="center" th:each="articulo : ${listaArticulos}">
+            <td th:text="${articulo.codigoArticulo}">Pasola</td>
+            <td th:text="${articulo.descripcion}" >1</td>
+            <td th:text="${articulo.almacen.codigoAlmacen}">1000</td>
+            <td th:text="${articulo.almacen.balanceActual}">1000</td>
+        </tr>
+        </tbody>
+    </table>
 
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">
+        <h2 class="h4" align="left">Consumo Diario</h2>
+    </div>
+    <div class="row">
+        <table style="width: 38%" class="table table-striped">
+            <thead class="thead-light">
+            <tr align="center">
+                <th scope="col">Codigo Articulo</th>
+                <th scope="col">Cantidad</th>
+            </tr>
+            </thead>
+            <tbody class="table-hover">
+            <tr align="center" th:each="consumo : ${listaConsumos}">
+                <td th:text="${consumo.codigoArticulo}">Pasola</td>
+                <td th:text="${consumo.promedioConsumo}" >1</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
-    </form>
 
+
+
+
+<style>
+    table {
+        width: 100%;
+    }
+
+    thead, tbody, tr, td, th { display: block; }
+
+    tr:after {
+        content: ' ';
+        display: block;
+        visibility: hidden;
+        clear: both;
+    }
+
+    thead th {
+        height: 60px;
+
+        /*text-align: left;*/
+    }
+
+    tbody {
+        height: 300px;
+        overflow-y: auto;
+    }
+
+    thead {
+        /* fallback */
+    }
+
+
+    tbody td, thead th {
+        width:25%;
+        float: left;
+    }
+</style>
 
 </body>
 </html>
