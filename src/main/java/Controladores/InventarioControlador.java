@@ -1,12 +1,18 @@
 package Controladores;
 
 import Modelo.Articulo;
+import Modelo.ArticuloOrdenado;
 import Modelo.Inventario;
+import Modelo.OrdenCompra;
 import io.javalin.Javalin;
 import io.javalin.plugin.rendering.JavalinRenderer;
 import io.javalin.plugin.rendering.template.JavalinThymeleaf;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class InventarioControlador {
@@ -14,6 +20,9 @@ public class InventarioControlador {
     private Javalin app;
     Map<String, Object> modelo = new HashMap<>();
     Inventario inventario;
+    OrdenCompra ordenCompra;
+    // Para conversión de fecha de freemarker
+    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public InventarioControlador(Javalin app, Inventario inventario){
         this.app = app;
@@ -40,6 +49,35 @@ public class InventarioControlador {
 
             ctx.redirect("/");
         });
+
+        app.get("/ordenCompra",ctx -> {
+            Map<String, List<ArticuloOrdenado>> articulosOrdenados = new HashMap<String, List<ArticuloOrdenado>>() {{
+                ArrayList<ArticuloOrdenado> arregloArticulosOrdenados = new ArrayList<ArticuloOrdenado>();
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                put("articulosOrdenados", arregloArticulosOrdenados);
+            }};
+
+            // for (int i=0;i<5; i++) {
+            //     testModel.get("myCustomStrings").add("myCustomString " + i); 
+            // }
+            ctx.render("templates/OrdenCompra.html",articulosOrdenados);
+
+        });
+
+        app.post("/realizarOrdenCompra", ctx -> {
+
+            // System.out.println(ctx.formParam("${ordenCompra.codigoOrden}=[3]"));
+            System.out.println(ctx.formParamMap());
+            System.out.println(ctx.formParam("${articulosOrdenados[0]}"));
+            System.out.println(ctx.formParam("${articulosOrdenados}"));
+            
+
+            // LocalDate fechaRequerida = LocalDate.parse(ctx.formParam("fechaOrden"), dateFormatter);
+            // ordenCompra.realizarOrdenCompra(ctx.formParam("codigoArticuloOrden"), Long.parseLong(ctx.formParam("codigoAlmacen")));
+        });
+
 
 
     }

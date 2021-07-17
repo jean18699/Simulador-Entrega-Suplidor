@@ -6,6 +6,10 @@ public class ArticuloOrdenado {
     private long cantidadOrdenada;
     private float precioCompra;
 
+    public ArticuloOrdenado() {
+
+    }
+
     public ArticuloOrdenado(String codigoArticulo, long cantidadOrdenada, float precioCompra) {
         this.codigoArticulo = codigoArticulo;
         this.cantidadOrdenada = cantidadOrdenada;

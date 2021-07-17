@@ -13,6 +13,11 @@ public class OrdenCompra {
     private float montoTotal;
     private List<ArticuloOrdenado> articulos;
 
+    public OrdenCompra(long codigoOrden, long codigoSuplidor) {
+        this.codigoOrden = codigoOrden;
+        this.codigoSuplidor = codigoSuplidor;
+    }
+
     public OrdenCompra(long codigoSuplidor, LocalDate fechaRequerida, List<ArticuloOrdenado> articulos) {
         contador += 1;
         this.codigoOrden = contador;
@@ -25,6 +30,10 @@ public class OrdenCompra {
             montoTotal += articulos.get(i).getPrecioCompra();
         }
 
+    }
+
+    public void realizarOrdenCompra(LocalDate fechaRequerida, List<ArticuloOrdenado> articulos, long cantidad) {
+        return;
     }
 
     public void agregarArticulo(ArticuloOrdenado articulo)
