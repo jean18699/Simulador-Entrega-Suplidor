@@ -4,16 +4,17 @@ public class ArticuloOrdenado {
 
     private String codigoArticulo;
     private long cantidadOrdenada;
+    private long codigoAlmacen;
     private float precioCompra;
 
     public ArticuloOrdenado() {
 
     }
 
-    public ArticuloOrdenado(String codigoArticulo, long cantidadOrdenada, float precioCompra) {
+    public ArticuloOrdenado(String codigoArticulo, long cantidadOrdenada, long codigoAlmacen) {
         this.codigoArticulo = codigoArticulo;
         this.cantidadOrdenada = cantidadOrdenada;
-        this.precioCompra = precioCompra;
+        this.codigoAlmacen = codigoAlmacen;
     }
 
     public String getCodigoArticulo() {
@@ -38,5 +39,13 @@ public class ArticuloOrdenado {
 
     public void setPrecioCompra(float precioCompra) {
         this.precioCompra = precioCompra;
+    }
+
+    public long getCodigoAlmacen() {
+        return codigoAlmacen;
+    }
+
+    public void setCodigoAlmacen(long codigoAlmacen) {
+        this.codigoAlmacen = codigoAlmacen;
     }
 }

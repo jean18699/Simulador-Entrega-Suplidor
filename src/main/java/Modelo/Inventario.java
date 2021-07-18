@@ -7,8 +7,8 @@ import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import java.sql.Date;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +20,7 @@ public class Inventario {
 
     private List<Articulo> articulos;
     private List<ArticuloSuplidor> articulosSuplidores;
+    private List<ArticuloOrdenado> articuloOrdenados;
     private List<Movimiento> movimientosInventario;
     private List<OrdenCompra> ordenesCompra;
     private List<ConsumoDiario> listaConsumos;
@@ -187,35 +188,6 @@ public class Inventario {
         db_articulosSuplidores.insertOne(doc_articuloSuplidor);
     }
 
-    public void nuevaOrden(OrdenCompra orden){
-
-        LocalDate fechaActual = LocalDate.now();
-        orden.setFechaOrden(fechaActual);
-        ordenesCompra.add(orden);
-
-        Document doc_orden = new Document();
-        List<DBObject> arrayArticulos = new ArrayList<>();
-
-
-        doc_orden.append("codigoOrden",orden.getCodigoOrden())
-                .append("codigoSuplidor",orden.getCodigoSuplidor())
-                .append("fechaOrden",fechaActual)
-                .append("fechaRequerida",orden.getFechaRequerida());
-
-        List<Document> articulosOrdenados = new ArrayList<>();
-
-        for(ArticuloOrdenado articulo : orden.getArticulos())
-        {
-            articulosOrdenados.add(new Document("codigoArticulo",articulo.getCodigoArticulo())
-                    .append("cantidadOrdenada",articulo.getCantidadOrdenada())
-                    .append("precioCompra",articulo.getPrecioCompra()));
-        }
-
-
-        doc_orden.append("articulos",articulosOrdenados);
-        db_ordenCompra.insertOne(doc_orden);
-    }
-
     //Funcion para realizar un movimiento. Tambien actualiza la base de datos
     public long realizarMovimiento(String codigoArticulo, long codigoAlmacen, String tipoMovimiento, long cantidad)
     {
@@ -319,6 +291,109 @@ public class Inventario {
         doc.put("promedioConsumo",promedioConsumo);
         update.put("$set",doc);
         db_consumoDiario.updateOne(and(filtros),update);
+    }
+
+    public void crearOrden(OrdenCompra orden){
+
+        LocalDate fechaActual = LocalDate.now();
+        orden.setFechaOrden(fechaActual);
+        ordenesCompra.add(orden);
+
+        Document doc_orden = new Document();
+
+        doc_orden.append("codigoOrden",orden.getCodigoOrden())
+                .append("codigoSuplidor",orden.getCodigoSuplidor())
+                .append("fechaOrden",orden.getFechaOrden())
+                .append("articulo", new Document(
+                        "codigoArticulo",orden.getArticuloOrdenado().getCodigoArticulo())
+                        .append("cantidadOrdenada",orden.getArticuloOrdenado().getCantidadOrdenada())
+                        .append("precioCompra",orden.getArticuloOrdenado().getPrecioCompra()
+                ));
+
+        ordenesCompra.add(orden);
+        db_ordenCompra.insertOne(doc_orden);
+    }
+
+
+    public void genOrd(List<ArticuloOrdenado> articuloOrdenados)
+    {
+
+    }
+
+    public ArticuloOrdenado generarOrdenCompra(ArticuloOrdenado articuloOrdenado, LocalDate fechaRequerida)
+    {
+        long consumoDiario = 0;
+        LocalDate fechaActual = LocalDate.now();
+        long cantidadDias = ChronoUnit.DAYS.between(fechaActual, fechaRequerida);
+        long balanceInventario = 0;
+        List<Document> parametrosAggregate = new ArrayList<>();
+
+        for(int i = 0; i < listaConsumos.size(); i++)
+        {
+            if(articuloOrdenado.getCodigoArticulo().equalsIgnoreCase(listaConsumos.get(i).getCodigoArticulo()))
+            {
+                consumoDiario = listaConsumos.get(i).getPromedioConsumo();
+
+            }
+        }
+
+        for(int i = 0; i < articulos.size(); i++)
+        {
+            if(articuloOrdenado.getCodigoArticulo().equalsIgnoreCase(articulos.get(i).getCodigoArticulo())
+            && articuloOrdenado.getCodigoAlmacen() == articulos.get(i).getAlmacen().getCodigoAlmacen())
+            {
+                balanceInventario = articulos.get(i).getAlmacen().getBalanceActual();
+                break;
+            }
+        }
+
+        long totalATener = (consumoDiario*cantidadDias)+ articuloOrdenado.getCantidadOrdenada();
+        long cantidadAPedir = Math.max(0,totalATener - balanceInventario);
+        long totalConsumidoFechaRequerida = consumoDiario*cantidadDias;
+
+
+        /***
+         * db.articuloSuplidor.aggregate(
+         *     {$match: {codigoArticulo: "TEC-001"}},
+         *     {$sort: {tiempoEntrega: 1, precioCompra: 1}},
+         *     {$limit: 1}
+         *     )
+         */
+        parametrosAggregate.add(new Document("$match", new Document("codigoArticulo", articuloOrdenado.getCodigoArticulo())));
+        parametrosAggregate.add(new Document("$sort", new Document("tiempoEntrega", 1).append("precioCompra",1)));
+        parametrosAggregate.add(new Document("$limit", 1));
+        
+        ArticuloSuplidor suplidor = null;
+
+        List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
+
+        for(Document doc : cursorArticulosSuplidores) {
+            suplidor = new ArticuloSuplidor(
+                    Long.parseLong(doc.get("codigoSuplidor").toString()),
+                    doc.get("codigoArticulo").toString(),
+                    Long.parseLong(doc.get("tiempoEntrega").toString()),
+                    Float.parseFloat(doc.get("precioCompra").toString())
+            );
+        }
+        articuloOrdenado.setPrecioCompra(suplidor.getPrecioCompra());
+        cantidadDias = suplidor.getTiempoEntrega();
+        LocalDate fechaOrden = LocalDate.now();
+
+        
+
+        //OrdenCompra orden = new OrdenCompra(suplidor.getCodigoSuplidor(),fechaOrden.plusDays(cantidadDias),articuloOrdenado);
+       // crearOrden(orden);
+
+
+       /* System.out.println("Dias para Entregar: " + cantidadDias);
+        System.out.println("Balance Inventario: "+ balanceInventario);
+        System.out.println("Consumo Diario: "+ consumoDiario);
+        System.out.println("Total Consumido hasta el "+fechaOrden.plusDays(cantidadDias)+": "+ totalConsumidoFechaRequerida);
+        System.out.println("Requerido para el "+ fechaOrden.plusDays(cantidadDias)+": "+articuloOrdenado.getCantidadOrdenada());
+        System.out.println("Total a Tener para el "+ fechaOrden.plusDays(cantidadDias)+": "+totalATener);
+        System.out.println("Pedir: "+ cantidadAPedir);
+        System.out.println("Orden al suplidor #"+suplidor.getCodigoSuplidor()+" el cual tarda "+suplidor.getTiempoEntrega()+" dias en entregar");
+        //System.out.println("Fecha Requerida: " + fechaOrden.plusDays(cantidadDias));*/
     }
 
 

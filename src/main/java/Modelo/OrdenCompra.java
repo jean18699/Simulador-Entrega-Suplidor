@@ -1,7 +1,6 @@
 package Modelo;
 
 import java.time.LocalDate;
-import java.util.List;
 
 public class OrdenCompra {
 
@@ -11,46 +10,21 @@ public class OrdenCompra {
     private LocalDate fechaOrden;
     private LocalDate fechaRequerida;
     private float montoTotal;
-    private List<ArticuloOrdenado> articulos;
+    private ArticuloOrdenado articuloOrdenado;
 
     public OrdenCompra(long codigoOrden, long codigoSuplidor) {
         this.codigoOrden = codigoOrden;
         this.codigoSuplidor = codigoSuplidor;
     }
 
-    public OrdenCompra(long codigoSuplidor, LocalDate fechaRequerida, List<ArticuloOrdenado> articulos) {
+    public OrdenCompra(long codigoSuplidor, LocalDate fechaRequerida, ArticuloOrdenado articulo) {
         contador += 1;
         this.codigoOrden = contador;
         this.codigoSuplidor = codigoSuplidor;
         this.fechaRequerida = fechaRequerida;
-        this.articulos = articulos;
-
-        for(int i = 0; i < articulos.size(); i++)
-        {
-            montoTotal += articulos.get(i).getPrecioCompra();
-        }
-
-    }
-
-    public void realizarOrdenCompra(LocalDate fechaRequerida, List<ArticuloOrdenado> articulos, long cantidad) {
-        return;
-    }
-
-    public void agregarArticulo(ArticuloOrdenado articulo)
-    {
-        this.articulos.add(articulo);
-    }
-
-    public void quitarArticulo(ArticuloOrdenado articulo)
-    {
-        for(int i = 0; i < articulos.size(); i++)
-        {
-            if(articulos.get(i).getCodigoArticulo().equalsIgnoreCase(articulo.getCodigoArticulo()))
-            {
-                articulos.remove(i);
-            }
-        }
-
+        this.articuloOrdenado = articulo;
+        this.montoTotal = articulo.getPrecioCompra();
+        this.fechaOrden = LocalDate.now();
     }
 
     public long getCodigoOrden() {
@@ -93,11 +67,14 @@ public class OrdenCompra {
         this.montoTotal = montoTotal;
     }
 
-    public List<ArticuloOrdenado> getArticulos() {
-        return articulos;
+    public ArticuloOrdenado getArticuloOrdenado() {
+        return articuloOrdenado;
     }
 
-    public void setArticulos(List<ArticuloOrdenado> articulos) {
-        this.articulos = articulos;
+    public void setArticuloOrdenado(ArticuloOrdenado articuloOrdenado) {
+        this.articuloOrdenado = articuloOrdenado;
     }
+
+
+
 }
