@@ -22,7 +22,7 @@
 
                     <div class="row">
                         <div class="col-2">
-                            <label class="form-label"><b>Fecha de la orden</b></label>
+                            <label class="form-label"><b>Fecha requerida</b></label>
                             <input type="date" class="form-control" name="fechaOrden" fullwidth required>
                         </div>
                     </div>
@@ -31,14 +31,15 @@
                         <div class="row">
 
                             <div class="col-2">
-                                <label class="form-label"><b>Codigo del articulo:</b></label>
+                                <label class="form-label"><b>Código del articulo:</b></label>
                                 <input type="text" class="form-control" name="articulosOrdenados[0].codigoArticulo"
                                     fullwidth required>
                             </div>
 
                             <div class="col-2">
                                 <label class="form-label"><b>Precio de la compra</b></label>
-                                <input type="number" min="1" step="0.1" class="form-control" name="articulosOrdenados[0].precioCompra">
+                                <input type="number" min="1" step="0.1" class="form-control" name="articulosOrdenados[0].precioCompra" fullwidth
+                                required>
                             </div>
 
                         </div>
@@ -49,6 +50,13 @@
                                 <input type="number" min="1" class="form-control" name="articulosOrdenados[0].cantidadOrdenada" fullwidth
                                     required>
                             </div>
+
+                            <div class="col-2">
+                                <label class="form-label"><b>Código Almacén</b></label>
+                                <input type="number" min="1" class="form-control" name="articulosOrdenados[0].almacen" fullwidth
+                                    required>
+                            </div>
+
                         </div>
                         <div class="row">&nbsp;</div>
                     </div>
@@ -128,9 +136,14 @@
 
             var inputsInClone = clone.querySelectorAll("input");
 
+            for (var i = 0; i < inputsInClone.length; i++) {
+                inputsInClone[i].value = ''
+            }
+
             inputsInClone[0].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].codigoArticulo");
             inputsInClone[1].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].precioCompra");
             inputsInClone[2].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].cantidadOrdenada");
+            inputsInClone[3].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].almacen");
 
             // remove clone id
             clone.removeAttribute('id');
