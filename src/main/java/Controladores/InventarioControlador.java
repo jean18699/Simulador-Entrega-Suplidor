@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class InventarioControlador {
 
@@ -66,15 +67,57 @@ public class InventarioControlador {
 
         });
 
+        app.get("/listadoOrdenes",ctx -> {
+            Map<String, List<ArticuloOrdenado>> articulosOrdenados = new HashMap<String, List<ArticuloOrdenado>>() {{
+                ArrayList<ArticuloOrdenado> arregloArticulosOrdenados = new ArrayList<ArticuloOrdenado>();
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                arregloArticulosOrdenados.add(new ArticuloOrdenado());
+                put("articulosOrdenados", arregloArticulosOrdenados);
+            }};
+
+            // for (int i=0;i<5; i++) {
+            //     testModel.get("myCustomStrings").add("myCustomString " + i); 
+            // }
+            ctx.render("templates/ListadoOrdenes.html",articulosOrdenados);
+
+        });
+
         app.post("/realizarOrdenCompra", ctx -> {
 
             // System.out.println(ctx.formParam("${ordenCompra.codigoOrden}=[3]"));
-            System.out.println(ctx.formParamMap());
-            System.out.println(ctx.formParam("${articulosOrdenados[0]}"));
-            System.out.println(ctx.formParam("${articulosOrdenados}"));
+
+            List attributes = new ArrayList();
+
+            Set<String> keys = ctx.formParamMap().keySet();
+
+
+            for (String key : keys) {
+                attributes.add(ctx.formParamMap().get(key).get(0));
+            }
+
+            // List array = new ArrayList(ctx.formParamMap().values());
+
+            String fechaRequeridaString = (String) attributes.get(0);
+
+            LocalDate fechaRequerida = LocalDate.parse(fechaRequeridaString, dateFormatter);
+
+            attributes.remove(0);
+
+            List<Articulo> articulos = new ArrayList<Articulo>();
+
+
+
+            // for (int i = 0; i < attributes.size(); i+=3) {
+            //     articulos.add(new Articulo())
+            // }
+
+            
+            // System.out.println(attributes);
+            // System.out.println(fechaRequerida);
             
 
-            // LocalDate fechaRequerida = LocalDate.parse(ctx.formParam("fechaOrden"), dateFormatter);
+            
             // ordenCompra.realizarOrdenCompra(ctx.formParam("codigoArticuloOrden"), Long.parseLong(ctx.formParam("codigoAlmacen")));
         });
 
