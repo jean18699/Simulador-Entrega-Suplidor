@@ -1,8 +1,13 @@
 package Modelo;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-public class OrdenCompra {
+/**
+ * Clase para recibir las ordenes desde la base de datos, ya procesadas
+ */
+public class OrdenCompraTotal {
 
     private static long contador;
     private long codigoOrden;
@@ -10,14 +15,14 @@ public class OrdenCompra {
     private LocalDate fechaOrden;
     private LocalDate fechaRequerida;
     private float montoTotal;
-    private ArticuloOrdenado articuloOrdenado;
+    private List<ArticuloOrdenado> articulosOrdenados;
 
-    public OrdenCompra(LocalDate fechaOrden, long codigoSuplidor, ArticuloOrdenado articulo) {
+    public OrdenCompraTotal(long codigoOrden, long codigoSuplidor, float montoTotal, LocalDate fechaOrden, List<ArticuloOrdenado> articulo) {
         contador += 1;
         this.codigoOrden = contador;
         this.codigoSuplidor = codigoSuplidor;
-        this.articuloOrdenado = articulo;
-        this.montoTotal = articulo.getPrecioCompra();
+        this.articulosOrdenados = new ArrayList<>();
+        this.montoTotal = montoTotal;
         this.fechaOrden = fechaOrden;
     }
 
@@ -61,12 +66,12 @@ public class OrdenCompra {
         this.montoTotal = montoTotal;
     }
 
-    public ArticuloOrdenado getArticuloOrdenado() {
-        return articuloOrdenado;
+    public List<ArticuloOrdenado> getArticuloOrdenado() {
+        return articulosOrdenados;
     }
 
-    public void setArticuloOrdenado(ArticuloOrdenado articuloOrdenado) {
-        this.articuloOrdenado = articuloOrdenado;
+    public void setArticuloOrdenado(List<ArticuloOrdenado> articuloOrdenado) {
+        this.articulosOrdenados = articuloOrdenado;
     }
 
 

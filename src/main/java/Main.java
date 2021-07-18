@@ -33,11 +33,8 @@ public class Main {
         Inventario inv = new Inventario(db);
         new InventarioControlador(app,inv).aplicarRutas();
 
-       // OrdenCompra orden = new OrdenCompra();
-       // inv.agregarArticulo(new Articulo("MON-001",1,50,"Monitor"));
-
-
-        inv.generarOrdenCompra(new ArticuloOrdenado("MOU-001",5,1),LocalDate.parse("2021-07-23"));
+    
+        //inv.generarOrdenCompra(new ArticuloOrdenado("TEC-001",10,2),LocalDate.parse("2021-07-23"));
 
         //AREA DE PRUEBAS=============================================================//
         //ArrayList<ArticuloOrdenado> ordenados = new ArrayList<>();

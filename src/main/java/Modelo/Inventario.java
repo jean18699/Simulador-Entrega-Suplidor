@@ -1,13 +1,15 @@
 package Modelo;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.lang.reflect.Array;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,7 @@ public class Inventario {
     private List<ArticuloOrdenado> articuloOrdenados;
     private List<Movimiento> movimientosInventario;
     private List<OrdenCompra> ordenesCompra;
+    private List<OrdenCompraTotal> ordenesCompraTotales;
     private List<ConsumoDiario> listaConsumos;
     private MongoCollection<Document> db_articulos;
     private MongoCollection<Document> db_articulosSuplidores;
@@ -38,10 +41,12 @@ public class Inventario {
         db_consumoDiario = db.getCollection("consumoDiario");
         db_ordenCompra = db.getCollection("ordenCompra");
         ordenesCompra = new ArrayList<>();
+        ordenesCompraTotales = new ArrayList<OrdenCompraTotal>();
         cargarArticulos();
         cargarArticulosSuplidores();
         cargarMovimientosInventario();
         cargarConsumosDiarios();
+        cargarOrdenes();
     }
 
     private void cargarArticulos()
@@ -123,6 +128,68 @@ public class Inventario {
         }
     }
 
+    private void cargarOrdenes()
+    {
+        ordenesCompra = new ArrayList<>();
+        OrdenCompraTotal ordenCompraTotal;
+
+        List<Document> parametrosAggregate = new ArrayList<>();
+
+        /***
+         * db.ordenCompra.aggregate(
+         *     {$group: {_id: {fechaOrden: "$fechaOrden", codigoSuplidor: "$codigoSuplidor", codigoOrden: "$codigoOrden"}, montoTotal: {$sum: "$articulo.precioCompra"}, articulo: {$push: "$articulo"}}},
+         *     {$project: {_id: 0, codigoArticulo: "$_id.codigoArticulo", codigoOrden: "$_id.codigoOrden", codigoSuplidor: "$_id.codigoSuplidor", fechaOrden: "$_id.fechaOrden", articulo: "$articulo", montoTotal: 1}}
+         *     );
+         */
+
+        parametrosAggregate.add(new Document("$group",
+                new Document("_id",new Document("fechaOrden", "$fechaOrden").append("codigoSuplidor","$codigoSuplidor").append("codigoOrden","$codigoOrden"))
+                .append("montoTotal",new Document("$sum","$articulo.precioCompra")).append("articulo",new Document("$push","$articulo"))));
+
+
+        parametrosAggregate.add(new Document("$project", new Document("_id",0)
+                .append("codigoArticulo", "$_id.codigoArticulo")
+                .append("codigoOrden", "$_id.codigoOrden")
+                .append("codigoSuplidor", "$_id.codigoSuplidor")
+                .append("fechaOrden", "$_id.fechaOrden")
+                .append("articulo","$articulo")
+                .append("montoTotal",1)
+        ));
+
+        List<Document> cursorOrdenCompra = db_ordenCompra.aggregate(parametrosAggregate).into(new ArrayList<>());
+
+
+        LocalDate fecha;
+        Document doc_art;
+        List<ArticuloOrdenado> articulosOrden;
+
+        for(Document doc : cursorOrdenCompra) {
+
+            articulosOrden = new ArrayList<>();
+            for(int i = 0; i < doc.getList("articulo",Object.class).size(); i++)
+            {
+                doc_art = (Document) doc.getList("articulo", Object.class).get(i);
+
+
+                ArticuloOrdenado articuloOrdenado = new ArticuloOrdenado(doc_art.get("codigoArticulo").toString(),Long.parseLong(doc_art.get("cantidadOrdenada").toString()),
+                        Long.parseLong(doc_art.get("codigoAlmacen").toString()));
+
+                articulosOrden.add(articuloOrdenado);
+
+            }
+
+            fecha = doc.getDate("fechaOrden").toInstant().atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1); //conviertiendo a localdate
+
+            ordenCompraTotal = new OrdenCompraTotal(
+                    Long.parseLong(doc.get("codigoOrden").toString()),Long.parseLong(doc.get("codigoSuplidor").toString()),
+                    Float.parseFloat(doc.get("montoTotal").toString()),fecha,articulosOrden
+            );
+             ordenCompraTotal.setArticuloOrdenado(articulosOrden);
+             ordenesCompraTotales.add(ordenCompraTotal);
+        }
+
+    }
+
     private void cargarArticulosSuplidores()
     {
         articulosSuplidores = new ArrayList<>();
@@ -131,10 +198,10 @@ public class Inventario {
         List<Document> parametrosAggregate = new ArrayList<>();
 
         parametrosAggregate.add(new Document("$project", new Document("_id",0)
-            .append("codigoSuplidor", "$codigoSuplidor")
-            .append("codigoArticulo", "$codigoArticulo")
-            .append("tiempoEntrega", "$tiempoEntrega")
-            .append("precioCompra", "$precioCompra")
+                .append("codigoSuplidor", "$codigoSuplidor")
+                .append("codigoArticulo", "$codigoArticulo")
+                .append("tiempoEntrega", "$tiempoEntrega")
+                .append("precioCompra", "$precioCompra")
         ));
 
         List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
@@ -151,6 +218,7 @@ public class Inventario {
             articulosSuplidores.add(articuloSuplidor);
         }
     }
+
 
 
     public void agregarArticulo(Articulo articulo){
@@ -187,6 +255,7 @@ public class Inventario {
 
         db_articulosSuplidores.insertOne(doc_articuloSuplidor);
     }
+
 
     //Funcion para realizar un movimiento. Tambien actualiza la base de datos
     public long realizarMovimiento(String codigoArticulo, long codigoAlmacen, String tipoMovimiento, long cantidad)
@@ -295,8 +364,6 @@ public class Inventario {
 
     public void crearOrden(OrdenCompra orden){
 
-        LocalDate fechaActual = LocalDate.now();
-        orden.setFechaOrden(fechaActual);
         ordenesCompra.add(orden);
 
         Document doc_orden = new Document();
@@ -304,23 +371,20 @@ public class Inventario {
         doc_orden.append("codigoOrden",orden.getCodigoOrden())
                 .append("codigoSuplidor",orden.getCodigoSuplidor())
                 .append("fechaOrden",orden.getFechaOrden())
+                .append("montoTotal",orden.getArticuloOrdenado().getPrecioCompra())
                 .append("articulo", new Document(
                         "codigoArticulo",orden.getArticuloOrdenado().getCodigoArticulo())
                         .append("cantidadOrdenada",orden.getArticuloOrdenado().getCantidadOrdenada())
+                        .append("codigoAlmacen",orden.getArticuloOrdenado().getCodigoAlmacen())
                         .append("precioCompra",orden.getArticuloOrdenado().getPrecioCompra()
                 ));
 
         ordenesCompra.add(orden);
         db_ordenCompra.insertOne(doc_orden);
-    }
-
-
-    public void genOrd(List<ArticuloOrdenado> articuloOrdenados)
-    {
 
     }
 
-    public ArticuloOrdenado generarOrdenCompra(ArticuloOrdenado articuloOrdenado, LocalDate fechaRequerida)
+    public void generarOrdenCompra(ArticuloOrdenado articuloOrdenado, LocalDate fechaRequerida)
     {
         long consumoDiario = 0;
         LocalDate fechaActual = LocalDate.now();
@@ -359,6 +423,7 @@ public class Inventario {
          *     {$limit: 1}
          *     )
          */
+
         parametrosAggregate.add(new Document("$match", new Document("codigoArticulo", articuloOrdenado.getCodigoArticulo())));
         parametrosAggregate.add(new Document("$sort", new Document("tiempoEntrega", 1).append("precioCompra",1)));
         parametrosAggregate.add(new Document("$limit", 1));
@@ -375,17 +440,13 @@ public class Inventario {
                     Float.parseFloat(doc.get("precioCompra").toString())
             );
         }
+
         articuloOrdenado.setPrecioCompra(suplidor.getPrecioCompra());
-        cantidadDias = suplidor.getTiempoEntrega();
+
         LocalDate fechaOrden = LocalDate.now();
 
-        
 
-        //OrdenCompra orden = new OrdenCompra(suplidor.getCodigoSuplidor(),fechaOrden.plusDays(cantidadDias),articuloOrdenado);
-       // crearOrden(orden);
-
-
-       /* System.out.println("Dias para Entregar: " + cantidadDias);
+        System.out.println("Dias para Entregar: " + cantidadDias);
         System.out.println("Balance Inventario: "+ balanceInventario);
         System.out.println("Consumo Diario: "+ consumoDiario);
         System.out.println("Total Consumido hasta el "+fechaOrden.plusDays(cantidadDias)+": "+ totalConsumidoFechaRequerida);
@@ -393,7 +454,27 @@ public class Inventario {
         System.out.println("Total a Tener para el "+ fechaOrden.plusDays(cantidadDias)+": "+totalATener);
         System.out.println("Pedir: "+ cantidadAPedir);
         System.out.println("Orden al suplidor #"+suplidor.getCodigoSuplidor()+" el cual tarda "+suplidor.getTiempoEntrega()+" dias en entregar");
-        //System.out.println("Fecha Requerida: " + fechaOrden.plusDays(cantidadDias));*/
+
+        //Necesitamos verificar en que fecha debo de realizar el pedido
+        int contadorDias = 0;
+
+        for(long consumo = consumoDiario; consumo < balanceInventario; consumo+=consumoDiario)
+        {
+            if((consumo + consumoDiario) > balanceInventario) //Si el articulo se esta por acabar en el inventario, es aqui donde necesito realizar la orden
+            {
+               // fechaPedido = fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega()));
+                System.out.println("Fecha a ordenar: "+fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())));
+                break;
+            }else
+            {
+                contadorDias += 1;
+            }
+        }
+
+        articuloOrdenado.setCantidadOrdenada(cantidadAPedir);
+        OrdenCompra orden = new OrdenCompra(fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())),suplidor.getCodigoSuplidor(),articuloOrdenado);
+        crearOrden(orden);
+
     }
 
 
@@ -451,5 +532,9 @@ public class Inventario {
 
     public void setListaConsumos(List<ConsumoDiario> listaConsumos) {
         this.listaConsumos = listaConsumos;
+    }
+
+    public List<OrdenCompraTotal> getOrdenesCompraTotales() {
+        return ordenesCompraTotales;
     }
 }
