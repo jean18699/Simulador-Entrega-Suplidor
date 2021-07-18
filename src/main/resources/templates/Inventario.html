@@ -18,7 +18,19 @@
     <div class="row">&nbsp;</div>
     <div class="row">&nbsp;</div>
 
-    <h3 class="h3" align="center">INVENTARIO</h3>
+
+        <div class="row">
+            <h3 class="h3" align="center">INVENTARIO</h3>
+        </div>
+
+    <form action="/ordenCompra" method="get">
+        <div class="row">
+            <div class="col-3">
+                <button name="realizarOrden" type="submit" class="btn btn- btn-secondary">Realizar Pedido</button>
+            </div>
+        </div>
+    </form>
+
 
     <div class="row">&nbsp;</div>
     <div class="row">&nbsp;</div>
@@ -30,22 +42,21 @@
 
                     <div class="row">
 
-                        <div class="col-2">
+                        <div class="col-3">
                             <label for="codigoArticulo" class="form-label"><b>Codigo del articulo:</b></label>
                             <input type="text" id="codigoArticulo" class="form-control" name="codigoArticulo" fullwidth
                                 required>
                         </div>
 
 
-                        <div class="col-2">
+                        <div class="col-3">
                             <label for="codigoAlmacen" class="form-label"><b>Codigo del Almacen</b></label>
                             <input type="text" id="codigoAlmacen" class="form-control" name="codigoAlmacen" fullwidth
                                 required>
                         </div>
 
-                    </div>
-                    <div class="row">
-                        <div class="col-2">
+
+                        <div class="col-3">
                             <label for="tipoMovimiento" class="form-label"><b>Tipo de movimiento</b></label>
                             <select id="tipoMovimiento" class="form-select" name="tipoMovimiento" fullwidth required>
                                 <option value="ENTRADA">ENTRADA</option>
@@ -53,7 +64,7 @@
                             </select>
                         </div>
 
-                        <div class="col-2">
+                        <div class="col-3">
                             <label for="cantidad" class="form-label"><b>Cantidad</b></label>
                             <input type="number" min="1" id="cantidad" class="form-control" name="cantidad" fullwidth
                                 required>
@@ -129,7 +140,7 @@
         <h2 class="h4" align="left">Balance Inventario</h2>
     </div>
 
-    <table style="width: 38%" class="table table-striped">
+    <table  class="table table-striped">
         <thead class="thead-light">
             <tr align="center">
                 <th scope="col">Codigo Articulo</th>
