@@ -12,6 +12,11 @@ public class Almacen {
 
     }
 
+    public void addBalance(long balance)
+    {
+        balanceActual += balance;
+    }
+
     public long getCodigoAlmacen() {
         return codigoAlmacen;
     }

@@ -17,7 +17,7 @@ public class OrdenCompraTotal {
     private float montoTotal;
     private List<ArticuloOrdenado> articulosOrdenados;
 
-    public OrdenCompraTotal(long codigoOrden, long codigoSuplidor, float montoTotal, LocalDate fechaOrden, List<ArticuloOrdenado> articulo) {
+    public OrdenCompraTotal(long codigoSuplidor, float montoTotal, LocalDate fechaOrden, List<ArticuloOrdenado> articulo) {
         contador += 1;
         this.codigoOrden = contador;
         this.codigoSuplidor = codigoSuplidor;

@@ -6,6 +6,7 @@ public class ArticuloOrdenado {
     private long cantidadOrdenada;
     private long codigoAlmacen;
     private float precioCompra;
+    private boolean status;
 
     public ArticuloOrdenado() {
 
@@ -15,6 +16,15 @@ public class ArticuloOrdenado {
         this.codigoArticulo = codigoArticulo;
         this.cantidadOrdenada = cantidadOrdenada;
         this.codigoAlmacen = codigoAlmacen;
+        this.status = false;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
     }
 
     public String getCodigoArticulo() {

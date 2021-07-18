@@ -34,7 +34,7 @@ public class Main {
         new InventarioControlador(app,inv).aplicarRutas();
 
 
-        //inv.generarOrdenCompra(new ArticuloOrdenado("TEC-001",10,2),LocalDate.parse("2021-07-23"));
+        //inv.generarOrdenCompra(new ArticuloOrdenado("TEC-001",15,2),LocalDate.parse("2021-07-23"));
 
         //AREA DE PRUEBAS=============================================================//
         //ArrayList<ArticuloOrdenado> ordenados = new ArrayList<>();

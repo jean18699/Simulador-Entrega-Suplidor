@@ -22,6 +22,7 @@ public class InventarioControlador {
     Map<String, Object> modelo = new HashMap<>();
     Inventario inventario;
     OrdenCompra ordenCompra;
+    List<Integer> idArticulo;
     // Para conversión de fecha de freemarker
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -30,6 +31,7 @@ public class InventarioControlador {
         this.inventario = inventario;
         modelo.put("listaConsumos",inventario.getListaConsumos());
         modelo.put("listaArticulos",inventario.getArticulos());
+        idArticulo = new ArrayList<>();
         JavalinRenderer.register(JavalinThymeleaf.INSTANCE, ".html");
 
     }
@@ -38,6 +40,7 @@ public class InventarioControlador {
 
         app.get("/",ctx -> {
 
+            inventario.actualizarInventario(LocalDate.now());
             ctx.render("templates/Inventario.html",modelo);
 
         });
@@ -82,6 +85,48 @@ public class InventarioControlador {
             ctx.render("templates/ListadoOrdenes.html",articulosOrdenados);
 
         });
+
+
+        app.get("/crearPedido", ctx -> {
+           ctx.redirect("/crearPedido/1");
+        });
+
+        app.post("/modificarPedido", ctx -> {
+            ctx.redirect("/crearPedido/"+ctx.formParam("cantidadArticulos"));
+        });
+
+        app.get("/crearPedido/:cantidad", ctx -> {
+            Map<String, Object> modelo = new HashMap<>();
+            idArticulo = new ArrayList<>();
+
+            for(int i = 1; i <= Integer.parseInt(ctx.pathParam("cantidad")); i++)
+            {
+                idArticulo.add(i);
+            }
+            modelo.put("cantidadArticulos",idArticulo);
+            modelo.put("cantidadActual",ctx.pathParam("cantidad"));
+            ctx.render("templates/CrearOrden.html",modelo);
+        });
+
+        app.post("/realizarPedido", ctx -> {
+
+            LocalDate fechaOrden = LocalDate.parse(ctx.formParam("fechaOrden"));
+
+           for(int i = 1; i <= idArticulo.size(); i++)
+           {
+               System.out.println();
+               if(inventario.getArticuloByCodigo_Almacen(ctx.formParam("codigoArticulo"+i), Long.parseLong(ctx.formParam("codigoAlmacen"+i))) != null)
+               {
+                   ArticuloOrdenado articuloOrdenado = new ArticuloOrdenado(ctx.formParam("codigoArticulo"+i),Long.parseLong(ctx.formParam("cantidadOrdenada"+i)),
+                           Long.parseLong(ctx.formParam("codigoAlmacen"+i)));
+
+                   inventario.generarOrdenCompra(articuloOrdenado,fechaOrden);
+               }
+           }
+
+           ctx.redirect("/crearPedido/"+1);
+        });
+
 
         app.post("/realizarOrdenCompra", ctx -> {
 

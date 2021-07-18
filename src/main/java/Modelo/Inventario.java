@@ -137,19 +137,18 @@ public class Inventario {
 
         /***
          * db.ordenCompra.aggregate(
-         *     {$group: {_id: {fechaOrden: "$fechaOrden", codigoSuplidor: "$codigoSuplidor", codigoOrden: "$codigoOrden"}, montoTotal: {$sum: "$articulo.precioCompra"}, articulo: {$push: "$articulo"}}},
+         *     {$group: {_id: {fechaOrden: "$fechaOrden", codigoSuplidor: "$codigoSuplidor"}, montoTotal: {$sum: "$articulo.precioCompra"}, articulo: {$push: "$articulo"}}},
          *     {$project: {_id: 0, codigoArticulo: "$_id.codigoArticulo", codigoOrden: "$_id.codigoOrden", codigoSuplidor: "$_id.codigoSuplidor", fechaOrden: "$_id.fechaOrden", articulo: "$articulo", montoTotal: 1}}
          *     );
          */
 
         parametrosAggregate.add(new Document("$group",
-                new Document("_id",new Document("fechaOrden", "$fechaOrden").append("codigoSuplidor","$codigoSuplidor").append("codigoOrden","$codigoOrden"))
+                new Document("_id",new Document("fechaOrden", "$fechaOrden").append("codigoSuplidor","$codigoSuplidor"))
                 .append("montoTotal",new Document("$sum","$articulo.precioCompra")).append("articulo",new Document("$push","$articulo"))));
 
 
         parametrosAggregate.add(new Document("$project", new Document("_id",0)
                 .append("codigoArticulo", "$_id.codigoArticulo")
-                .append("codigoOrden", "$_id.codigoOrden")
                 .append("codigoSuplidor", "$_id.codigoSuplidor")
                 .append("fechaOrden", "$_id.fechaOrden")
                 .append("articulo","$articulo")
@@ -174,6 +173,8 @@ public class Inventario {
                 ArticuloOrdenado articuloOrdenado = new ArticuloOrdenado(doc_art.get("codigoArticulo").toString(),Long.parseLong(doc_art.get("cantidadOrdenada").toString()),
                         Long.parseLong(doc_art.get("codigoAlmacen").toString()));
 
+                articuloOrdenado.setStatus(doc_art.getBoolean("status"));
+
                 articulosOrden.add(articuloOrdenado);
 
             }
@@ -181,7 +182,7 @@ public class Inventario {
             fecha = doc.getDate("fechaOrden").toInstant().atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1); //conviertiendo a localdate
 
             ordenCompraTotal = new OrdenCompraTotal(
-                    Long.parseLong(doc.get("codigoOrden").toString()),Long.parseLong(doc.get("codigoSuplidor").toString()),
+                    Long.parseLong(doc.get("codigoSuplidor").toString()),
                     Float.parseFloat(doc.get("montoTotal").toString()),fecha,articulosOrden
             );
              ordenCompraTotal.setArticuloOrdenado(articulosOrden);
@@ -220,6 +221,54 @@ public class Inventario {
     }
 
 
+    public void actualizarInventario(LocalDate fechaActual)
+    {
+        for(int i = 0; i < ordenesCompraTotales.size(); i++)
+        {
+            if(ordenesCompraTotales.get(i).getFechaOrden().equals(fechaActual))
+            {
+                for(int j = 0; j < ordenesCompraTotales.get(i).getArticuloOrdenado().size();j++)
+                {
+                    if(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getStatus() == false)
+                    {
+                        Articulo articulo = getArticuloByCodigo(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCodigoArticulo());
+                        articulo.getAlmacen().addBalance(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCantidadOrdenada());
+                        ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).setStatus(true);
+                    }
+                }
+                actualizarOrdenesBD(ordenesCompraTotales.get(i));
+            }
+        }
+        cargarOrdenes();
+
+    }
+
+    private void actualizarOrdenesBD(OrdenCompraTotal ordenCompraTotal)
+    {
+        /***
+         * db.ordenCompra.aggregate(
+         *     {$match: {fechaOrden: new Date("2021-07-20"), codigoSuplidor: 4}}
+         *     );
+         */
+        Bson[] filtros = {eq("fechaOrden",ordenCompraTotal.getFechaOrden()), eq("codigoSuplidor",ordenCompraTotal.getCodigoSuplidor())};
+        BasicDBObject doc = new BasicDBObject();
+        BasicDBObject update = new BasicDBObject();
+
+        for(int i = 0; i < ordenCompraTotal.getArticuloOrdenado().size(); i++)
+        {
+                /***
+                 * db.ordenCompra.aggregate(
+                 *     {$match: {fechaOrden: new Date("2021-07-20"), codigoSuplidor: 4}}
+                 *     );
+                 */
+
+                doc.put("articulo.status", ordenCompraTotal.getArticuloOrdenado().get(i).getStatus());
+                update.put("$set",doc);
+                db_ordenCompra.updateOne(and(filtros),update);
+                actualizarCantidadArticuloBD(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo(),ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoAlmacen(),
+                        getArticuloByCodigo(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo()).getAlmacen().getBalanceActual());
+        }
+    }
 
     public void agregarArticulo(Articulo articulo){
         articulos.add(articulo);
@@ -340,6 +389,18 @@ public class Inventario {
         return (long) Math.ceil(cantidadConsumida / contador);
     }
 
+    public Articulo getArticuloByCodigo(String codigoArticulo)
+    {
+        for(int i = 0; i < articulos.size(); i++)
+        {
+            if(articulos.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
+            {
+                return articulos.get(i);
+            }
+        }
+        return null;
+    }
+
     private void actualizarCantidadArticuloBD(String codigoArticulo, long codigoAlmacen, long cantidad)
     {
         Bson[] filtros = {eq("codigoArticulo",codigoArticulo),eq("almacen.codigoAlmacen",codigoAlmacen)};
@@ -376,6 +437,7 @@ public class Inventario {
                         "codigoArticulo",orden.getArticuloOrdenado().getCodigoArticulo())
                         .append("cantidadOrdenada",orden.getArticuloOrdenado().getCantidadOrdenada())
                         .append("codigoAlmacen",orden.getArticuloOrdenado().getCodigoAlmacen())
+                        .append("status", false)
                         .append("precioCompra",orden.getArticuloOrdenado().getPrecioCompra()
                 ));
 
@@ -392,6 +454,7 @@ public class Inventario {
         long balanceInventario = 0;
         List<Document> parametrosAggregate = new ArrayList<>();
 
+
         for(int i = 0; i < listaConsumos.size(); i++)
         {
             if(articuloOrdenado.getCodigoArticulo().equalsIgnoreCase(listaConsumos.get(i).getCodigoArticulo()))
@@ -404,7 +467,7 @@ public class Inventario {
         for(int i = 0; i < articulos.size(); i++)
         {
             if(articuloOrdenado.getCodigoArticulo().equalsIgnoreCase(articulos.get(i).getCodigoArticulo())
-            && articuloOrdenado.getCodigoAlmacen() == articulos.get(i).getAlmacen().getCodigoAlmacen())
+                    && articuloOrdenado.getCodigoAlmacen() == articulos.get(i).getAlmacen().getCodigoAlmacen())
             {
                 balanceInventario = articulos.get(i).getAlmacen().getBalanceActual();
                 break;
@@ -427,7 +490,7 @@ public class Inventario {
         parametrosAggregate.add(new Document("$match", new Document("codigoArticulo", articuloOrdenado.getCodigoArticulo())));
         parametrosAggregate.add(new Document("$sort", new Document("tiempoEntrega", 1).append("precioCompra",1)));
         parametrosAggregate.add(new Document("$limit", 1));
-        
+
         ArticuloSuplidor suplidor = null;
 
         List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
@@ -445,7 +508,8 @@ public class Inventario {
 
         LocalDate fechaOrden = LocalDate.now();
 
-
+        System.out.println("Codigo Articulo: " + articuloOrdenado.getCodigoArticulo());
+        System.out.println("Para el Almacen: " + articuloOrdenado.getCodigoAlmacen());
         System.out.println("Dias para Entregar: " + cantidadDias);
         System.out.println("Balance Inventario: "+ balanceInventario);
         System.out.println("Consumo Diario: "+ consumoDiario);
@@ -455,28 +519,48 @@ public class Inventario {
         System.out.println("Pedir: "+ cantidadAPedir);
         System.out.println("Orden al suplidor #"+suplidor.getCodigoSuplidor()+" el cual tarda "+suplidor.getTiempoEntrega()+" dias en entregar");
 
+
         //Necesitamos verificar en que fecha debo de realizar el pedido
         int contadorDias = 0;
 
+
         for(long consumo = consumoDiario; consumo < balanceInventario; consumo+=consumoDiario)
         {
-            if((consumo + consumoDiario) > balanceInventario) //Si el articulo se esta por acabar en el inventario, es aqui donde necesito realizar la orden
+
+            if((consumo + consumoDiario) > balanceInventario || consumoDiario == 0) //Si el articulo se esta por acabar en el inventario, es aqui donde necesito realizar la orden
             {
-               // fechaPedido = fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega()));
-                System.out.println("Fecha a ordenar: "+fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())));
                 break;
-            }else
-            {
-                contadorDias += 1;
             }
+            contadorDias += 1; //margen de 1 dia
         }
 
+
+
+
+        System.out.println("Fecha a ordenar: "+fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())));
+        System.out.println("========================================================================================");
+        System.out.println();
         articuloOrdenado.setCantidadOrdenada(cantidadAPedir);
         OrdenCompra orden = new OrdenCompra(fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())),suplidor.getCodigoSuplidor(),articuloOrdenado);
         crearOrden(orden);
 
     }
 
+    public Articulo getArticuloByCodigo_Almacen(String codigoArticulo, long codigoAlmacen)
+    {
+        Articulo articulo = null;
+        for(int i = 0; i < articulos.size(); i++)
+        {
+            if(articulos.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
+            {
+                if(articulos.get(i).getAlmacen().getCodigoAlmacen() == codigoAlmacen)
+                {
+                    articulo = articulos.get(i);
+                }
+            }
+        }
+        return articulo;
+    }
 
     public List<Articulo> getArticulos() {
         return articulos;
