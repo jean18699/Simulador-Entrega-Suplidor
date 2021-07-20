@@ -487,15 +487,22 @@ public class Inventario {
         ArticuloSuplidor suplidor = null;
 
         List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
-
-        for(Document doc : cursorArticulosSuplidores) {
-            suplidor = new ArticuloSuplidor(
-                    Long.parseLong(doc.get("codigoSuplidor").toString()),
-                    doc.get("codigoArticulo").toString(),
-                    Long.parseLong(doc.get("tiempoEntrega").toString()),
-                    Float.parseFloat(doc.get("precioCompra").toString())
-            );
+        if(cursorArticulosSuplidores.size() > 0)
+        {
+            for(Document doc : cursorArticulosSuplidores) {
+                suplidor = new ArticuloSuplidor(
+                        Long.parseLong(doc.get("codigoSuplidor").toString()),
+                        doc.get("codigoArticulo").toString(),
+                        Long.parseLong(doc.get("tiempoEntrega").toString()),
+                        Float.parseFloat(doc.get("precioCompra").toString())
+                );
+            }
+        }else
+        {
+            System.out.println("No hay suplidores para este articulo");
+            return;
         }
+
 
         articuloOrdenado.setPrecioCompra(suplidor.getPrecioCompra());
 
@@ -527,14 +534,21 @@ public class Inventario {
             contadorDias += 1; //margen de 1 dia
         }
 
+        LocalDate fechaAOrdenar = null;
+        if(totalConsumidoFechaRequerida < balanceInventario)
+        {
+            fechaAOrdenar = LocalDate.now().plusDays(suplidor.getTiempoEntrega());
 
+        }else
+        {
+            fechaAOrdenar = fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega()));
+        }
 
-
-        System.out.println("Fecha a ordenar: "+fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())));
+        System.out.println("Fecha de Orden: "+fechaAOrdenar);
         System.out.println("========================================================================================");
         System.out.println();
         articuloOrdenado.setCantidadOrdenada(cantidadAPedir);
-        OrdenCompra orden = new OrdenCompra(fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())),suplidor.getCodigoSuplidor(),articuloOrdenado);
+        OrdenCompra orden = new OrdenCompra(fechaAOrdenar,suplidor.getCodigoSuplidor(),articuloOrdenado);
         crearOrden(orden);
 
     }
