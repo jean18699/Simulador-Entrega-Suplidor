@@ -39,8 +39,10 @@ public class InventarioControlador {
     public void aplicarRutas() throws NumberFormatException{
 
         app.get("/",ctx -> {
+            LocalDate fechaActual = LocalDate.now();
+            inventario.actualizarInventario(fechaActual);
 
-            inventario.actualizarInventario(LocalDate.now());
+
             ctx.render("templates/Inventario.html",modelo);
 
         });

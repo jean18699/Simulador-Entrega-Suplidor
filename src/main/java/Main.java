@@ -47,6 +47,16 @@ public class Main {
 
 
         //GENERADORES AUTOMATICOS TERMINADOS (EJECUTAR 1 SOLA VEZ!!!!! SI DESEAS OTRO RESULTADO BORRA LOS DATOS ANTERIORES EN MONGO Y EJECUTA ESTO DE NUEVO)
+
+      if(inv.getArticulos().size() == 0)
+      {
+          generarArticulos(inv);
+      }
+
+      if(inv.getArticulosSuplidores().size() == 0)
+      {
+          generarArticuloSuplidor(inv, 10);
+      }
        // generarArticuloSuplidor(inv, 10);
         //generarArticulos(inv);
 

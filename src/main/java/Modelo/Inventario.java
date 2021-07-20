@@ -14,17 +14,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.*;
 
 public class Inventario {
 
     private List<Articulo> articulos;
     private List<ArticuloSuplidor> articulosSuplidores;
-    private List<ArticuloOrdenado> articuloOrdenados;
     private List<Movimiento> movimientosInventario;
     private List<OrdenCompra> ordenesCompra;
+    private List<ArticuloOrdenado> articulosOrdenados;
     private List<OrdenCompraTotal> ordenesCompraTotales;
     private List<ConsumoDiario> listaConsumos;
     private MongoCollection<Document> db_articulos;
@@ -41,12 +39,20 @@ public class Inventario {
         db_consumoDiario = db.getCollection("consumoDiario");
         db_ordenCompra = db.getCollection("ordenCompra");
         ordenesCompra = new ArrayList<>();
-        ordenesCompraTotales = new ArrayList<OrdenCompraTotal>();
+        ordenesCompraTotales = new ArrayList<>();
         cargarArticulos();
         cargarArticulosSuplidores();
         cargarMovimientosInventario();
         cargarConsumosDiarios();
         cargarOrdenes();
+    }
+
+    public void updateAll()
+    {
+        cargarArticulos();
+        cargarOrdenes();
+        cargarConsumosDiarios();
+        cargarMovimientosInventario();
     }
 
     private void cargarArticulos()
@@ -61,6 +67,8 @@ public class Inventario {
                 .append("almacen","$almacen")
         ));
 
+        parametrosAggregate.add(new Document("$sort",new Document("codigoArticulo",1).append("almacen.codigoAlmacen",1)));
+
         List<Document> cursorArticulos = db_articulos.aggregate(parametrosAggregate).into(new ArrayList<>());
         Document almacenArticulo;
         for(Document doc : cursorArticulos) {
@@ -72,6 +80,7 @@ public class Inventario {
                     Long.parseLong(almacenArticulo.get("balanceActual").toString()),
                     doc.get("descripcion").toString()
             );
+           // System.out.println("mira esto: codigoArticulo:" + articulo.getCodigoArticulo() +" almacen: " + articulo.getAlmacen().getCodigoAlmacen() + " balance: "+ articulo.getAlmacen().getBalanceActual());
             articulos.add(articulo);
         }
     }
@@ -117,13 +126,14 @@ public class Inventario {
 
         parametrosAggregate.add(new Document("$project", new Document("_id",0)
                 .append("codigoArticulo", "$codigoArticulo")
+                .append("codigoAlmacen", "$codigoAlmacen")
                 .append("promedioConsumo", "$promedioConsumo")
         ));
 
         List<Document> cursorMovimientos = db_consumoDiario.aggregate(parametrosAggregate).into(new ArrayList<>());
 
         for(Document doc : cursorMovimientos) {
-            consumo = new ConsumoDiario(doc.get("codigoArticulo").toString(), Long.parseLong(doc.get("promedioConsumo").toString()));
+            consumo = new ConsumoDiario(doc.get("codigoArticulo").toString(), Long.parseLong(doc.get("codigoAlmacen").toString()), Long.parseLong(doc.get("promedioConsumo").toString()));
             listaConsumos.add(consumo);
         }
     }
@@ -131,6 +141,7 @@ public class Inventario {
     private void cargarOrdenes()
     {
         ordenesCompra = new ArrayList<>();
+        articulosOrdenados = new ArrayList<>();
         OrdenCompraTotal ordenCompraTotal;
 
         List<Document> parametrosAggregate = new ArrayList<>();
@@ -174,8 +185,8 @@ public class Inventario {
                         Long.parseLong(doc_art.get("codigoAlmacen").toString()));
 
                 articuloOrdenado.setStatus(doc_art.getBoolean("status"));
-
                 articulosOrden.add(articuloOrdenado);
+                articulosOrdenados.add(articuloOrdenado);
 
             }
 
@@ -206,9 +217,8 @@ public class Inventario {
         ));
 
         List<Document> cursorArticulosSuplidores = db_articulosSuplidores.aggregate(parametrosAggregate).into(new ArrayList<>());
-        // Document almacenArticuloSuplidor;
+
         for(Document doc : cursorArticulosSuplidores) {
-            // almacenArticuloSuplidor = (Document) doc.get("almacen");
 
             articuloSuplidor = new ArticuloSuplidor(
                     Long.parseLong(doc.get("codigoSuplidor").toString()),
@@ -223,28 +233,54 @@ public class Inventario {
 
     public void actualizarInventario(LocalDate fechaActual)
     {
-        for(int i = 0; i < ordenesCompraTotales.size(); i++)
+        long nuevaCantidad = 0;
+        for(OrdenCompraTotal orden : ordenesCompraTotales)
         {
-            if(ordenesCompraTotales.get(i).getFechaOrden().equals(fechaActual))
+            for(ArticuloOrdenado ordenado : orden.getArticuloOrdenado())
             {
-                for(int j = 0; j < ordenesCompraTotales.get(i).getArticuloOrdenado().size();j++)
+                Articulo articulo = getArticuloByCodigo_Almacen(ordenado.getCodigoArticulo(), ordenado.getCodigoAlmacen());
+                if(ordenado.getStatus() == false)
                 {
-                    if(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getStatus() == false)
-                    {
-                        Articulo articulo = getArticuloByCodigo(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCodigoArticulo());
-                        articulo.getAlmacen().addBalance(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCantidadOrdenada());
-                        ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).setStatus(true);
-                    }
+                    nuevaCantidad = articulo.getAlmacen().getBalanceActual() + ordenado.getCantidadOrdenada();
+                    ordenado.setStatus(true);
+                    articulo.getAlmacen().setBalanceActual(nuevaCantidad);
+                    actualizarCantidadArticuloBD(articulo.getCodigoArticulo(),articulo.getAlmacen().getCodigoAlmacen(),nuevaCantidad);
+                    actualizarOrdenBD(orden, ordenado);
                 }
-                actualizarOrdenesBD(ordenesCompraTotales.get(i));
+
             }
         }
-        cargarOrdenes();
 
     }
 
+    private void actualizarOrdenBD(OrdenCompraTotal ordenCompra, ArticuloOrdenado ordenado)
+    {
+
+        /***
+         * db.ordenCompra.aggregate(
+         *     {$match: {fechaOrden: new Date("2021-07-20"), codigoSuplidor: 4}}
+         *     );
+         */
+        Bson[] filtros = {eq("fechaOrden",ordenCompra.getFechaOrden()), eq("codigoSuplidor",ordenCompra.getCodigoSuplidor())};
+        BasicDBObject doc = new BasicDBObject();
+        BasicDBObject update = new BasicDBObject();
+
+        doc.put("articulo.status", ordenado.getStatus());
+        update.put("$set",doc);
+       // db_ordenCompra.updateMany(and(filtros),update);
+       for(int i = 0; i < ordenCompra.getArticuloOrdenado().size(); i++)
+        {
+            doc.put("articulo.status", true);
+            update.put("$set",doc);
+        }
+        db_ordenCompra.updateMany(and(filtros),update);
+
+    }
+
+
     private void actualizarOrdenesBD(OrdenCompraTotal ordenCompraTotal)
     {
+
         /***
          * db.ordenCompra.aggregate(
          *     {$match: {fechaOrden: new Date("2021-07-20"), codigoSuplidor: 4}}
@@ -256,18 +292,11 @@ public class Inventario {
 
         for(int i = 0; i < ordenCompraTotal.getArticuloOrdenado().size(); i++)
         {
-                /***
-                 * db.ordenCompra.aggregate(
-                 *     {$match: {fechaOrden: new Date("2021-07-20"), codigoSuplidor: 4}}
-                 *     );
-                 */
-
                 doc.put("articulo.status", ordenCompraTotal.getArticuloOrdenado().get(i).getStatus());
                 update.put("$set",doc);
-                db_ordenCompra.updateOne(and(filtros),update);
-                actualizarCantidadArticuloBD(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo(),ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoAlmacen(),
-                        getArticuloByCodigo(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo()).getAlmacen().getBalanceActual());
         }
+        db_ordenCompra.updateMany(and(filtros),update);
+
     }
 
     public void agregarArticulo(Articulo articulo){
@@ -283,11 +312,12 @@ public class Inventario {
 
     private void agregarConsumoDiario(ConsumoDiario consumoDiario)
     {
-        System.out.println(consumoDiario.getPromedioConsumo());
+
         listaConsumos.add(consumoDiario);
         Document doc_consumoDiario = new Document();
         doc_consumoDiario
                 .append("codigoArticulo", consumoDiario.getCodigoArticulo())
+                .append("codigoAlmacen",consumoDiario.getCodigoAlmacen())
                 .append("promedioConsumo", consumoDiario.getPromedioConsumo());
 
         db_consumoDiario.insertOne(doc_consumoDiario);
@@ -313,31 +343,31 @@ public class Inventario {
         Movimiento movimiento = new Movimiento(codigoArticulo,codigoAlmacen,tipoMovimiento,cantidad);
 
         Document doc_movimiento = new Document();
-        for(Articulo art : articulos)
-        {
-            if(art.getCodigoArticulo().equalsIgnoreCase(codigoArticulo) && art.getAlmacen().getCodigoAlmacen() == codigoAlmacen)
-            {
-                almacenArticulo = art.getAlmacen();
-                doc_movimiento
-                        .append("codigoMovimiento", movimiento.getCodigoMovimiento())
-                        .append("codigoAlmacen",codigoAlmacen)
-                        .append("tipoMovimiento", tipoMovimiento)
-                        .append("codigoArticulo", codigoArticulo)
-                        .append("cantidad", cantidad);
+        Articulo art = getArticuloByCodigo_Almacen(codigoArticulo,codigoAlmacen);
 
-                if(tipoMovimiento.equalsIgnoreCase("ENTRADA"))
-                {
-                    almacenArticulo.setBalanceActual(almacenArticulo.getBalanceActual() + cantidad);
-                }else
-                {
-                    almacenArticulo.setBalanceActual(Math.max(0,almacenArticulo.getBalanceActual() - cantidad));
-                }
-                actualizarCantidadArticuloBD(art.getCodigoArticulo(),almacenArticulo.getCodigoAlmacen(),almacenArticulo.getBalanceActual());
-                movimientosInventario.add(movimiento);
-                db_movimientoInventario.insertOne(doc_movimiento);
-                break;
+        if(art.getCodigoArticulo().equalsIgnoreCase(codigoArticulo) && art.getAlmacen().getCodigoAlmacen() == codigoAlmacen)
+        {
+            almacenArticulo = art.getAlmacen();
+            doc_movimiento
+                    .append("codigoMovimiento", movimiento.getCodigoMovimiento())
+                    .append("codigoAlmacen",codigoAlmacen)
+                    .append("tipoMovimiento", tipoMovimiento)
+                    .append("codigoArticulo", codigoArticulo)
+                    .append("cantidad", cantidad);
+
+            if(tipoMovimiento.equalsIgnoreCase("ENTRADA"))
+            {
+                almacenArticulo.setBalanceActual(almacenArticulo.getBalanceActual() + cantidad);
+            }else
+            {
+                almacenArticulo.setBalanceActual(Math.max(0,almacenArticulo.getBalanceActual() - cantidad));
             }
+            actualizarCantidadArticuloBD(art.getCodigoArticulo(),almacenArticulo.getCodigoAlmacen(),almacenArticulo.getBalanceActual());
+            movimientosInventario.add(movimiento);
+            db_movimientoInventario.insertOne(doc_movimiento);
+
         }
+
 
         if(tipoMovimiento.equalsIgnoreCase("SALIDA"))
         {
@@ -350,11 +380,8 @@ public class Inventario {
                     return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
                 }
             }
-            agregarConsumoDiario(new ConsumoDiario(codigoArticulo,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen)));
+            agregarConsumoDiario(new ConsumoDiario(codigoArticulo,codigoAlmacen,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen)));
         }
-
-
-
 
         return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
     }
@@ -373,7 +400,6 @@ public class Inventario {
                 {
                     if(movimientosInventario.get(i).getTipoMovimiento().equalsIgnoreCase("SALIDA"))
                     {
-
                         cantidadConsumida += movimientosInventario.get(i).getCantidad();
                         contador += 1;
                     }
@@ -389,27 +415,20 @@ public class Inventario {
         return (long) Math.ceil(cantidadConsumida / contador);
     }
 
-    public Articulo getArticuloByCodigo(String codigoArticulo)
-    {
-        for(int i = 0; i < articulos.size(); i++)
-        {
-            if(articulos.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
-            {
-                return articulos.get(i);
-            }
-        }
-        return null;
-    }
-
     private void actualizarCantidadArticuloBD(String codigoArticulo, long codigoAlmacen, long cantidad)
     {
+        System.out.println(cantidad);
         Bson[] filtros = {eq("codigoArticulo",codigoArticulo),eq("almacen.codigoAlmacen",codigoAlmacen)};
         BasicDBObject doc = new BasicDBObject();
         BasicDBObject update = new BasicDBObject();
 
         doc.put("almacen.balanceActual",cantidad);
         update.put("$set",doc);
-        db_articulos.updateOne(and(filtros),update);
+
+        getArticuloByCodigo_Almacen(codigoArticulo,codigoAlmacen).getAlmacen().setBalanceActual(cantidad);
+
+        db_articulos.updateMany(and(filtros),update);
+
     }
 
     private void actualizarConsumoDiarioBD(String codigoArticulo, long promedioConsumo)
@@ -426,7 +445,6 @@ public class Inventario {
     public void crearOrden(OrdenCompra orden){
 
         ordenesCompra.add(orden);
-
         Document doc_orden = new Document();
 
         doc_orden.append("codigoOrden",orden.getCodigoOrden())
@@ -448,6 +466,7 @@ public class Inventario {
 
     public void generarOrdenCompra(ArticuloOrdenado articuloOrdenado, LocalDate fechaRequerida)
     {
+        System.out.println("klk");
         long consumoDiario = 0;
         LocalDate fechaActual = LocalDate.now();
         long cantidadDias = ChronoUnit.DAYS.between(fechaActual, fechaRequerida);
@@ -533,8 +552,6 @@ public class Inventario {
             }
             contadorDias += 1; //margen de 1 dia
         }
-
-
 
 
         System.out.println("Fecha a ordenar: "+fechaOrden.plusDays(Math.max(0,contadorDias-suplidor.getTiempoEntrega())));
