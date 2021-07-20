@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Orden Compra</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+
+</head>
+
+<body>
+
+    <header>
+
+    </header>
+
+    <!-- Orden inicio -->
+    <div class="row justify-content-center">
+        <div class="row">
+            <div class="col-12">
+                <form th:action="@{/realizarOrdenCompra}" method="post">
+
+                    <div class="row">
+                        <div class="col-2">
+                            <label class="form-label"><b>Fecha requerida</b></label>
+                            <input type="date" class="form-control" name="fechaOrden" fullwidth required>
+                        </div>
+                    </div>
+
+                    <div class="row">&nbsp;</div>
+
+                    <div style="border-top: 2px solid gray; border-bottom: 2px gray solid; "class="orden-field" id="orden-form-container" data-index="0">
+                        <div class="row">
+
+                            <div class="col-3">
+                                <label class="form-label"><b>Codigo del articulo:</b></label>
+                                <input type="text" class="form-control" name="articulosOrdenados[0].codigoArticulo"
+                                    fullwidth required>
+                            </div>
+
+
+                            <div class="col-3">
+                                <label class="form-label"><b>Cantidad</b></label>
+                                <input type="number" min="1" class="form-control" name="articulosOrdenados[0].cantidadOrdenada" fullwidth
+                                    required>
+                            </div>
+
+                            <div class="col-3">
+                                <label class="form-label"><b>Codigo Almacen</b></label>
+                                <input type="number" min="1" class="form-control" name="articulosOrdenados[0].almacen" fullwidth
+                                    required>
+                            </div>
+
+                        </div>
+                        <div class="row">&nbsp;</div>
+                    </div>
+                    <div class="row">&nbsp;</div>
+                    <a onclick="addOrdenFields()" class="btn btn-secondary" style="margin-bottom: 20px;">Agregar Articulo</a>
+                    <div class="row">
+                        <div class="col-2">
+                            <button type="submit" class="btn btn- btn-primary">Finalizar
+                                Orden</button>
+                        </div>
+                    </div>
+                </form>
+                    <div class="row">&nbsp;</div>
+                    <form action="/" method="get">
+                        <div class="row">
+                            <div class="col-3">
+                                <button name="inventario" type="submit" class="btn btn- btn-danger">Volver al Inventario</button>
+                            </div>
+                        </div>
+                    </form>
+            </div>
+        </div>
+    </div>
+    <!-- Orden fin -->
+
+
+    <style>
+        table {
+            width: 100%;
+        }
+
+        thead,
+        tbody,
+        tr,
+        td,
+        th {
+            display: block;
+        }
+
+        tr:after {
+            content: ' ';
+            display: block;
+            visibility: hidden;
+            clear: both;
+        }
+
+        thead th {
+            height: 60px;
+            /*text-align: left;*/
+        }
+
+        tbody {
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        thead {
+            /* fallback */
+        }
+
+        tbody td,
+        thead th {
+            width: 25%;
+            float: left;
+        }
+    </style>
+
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <script>
+        function addOrdenFields() {
+
+            var removeButton = document.createElement('a');  
+            removeButton.setAttribute("onclick", "return this.parentNode.remove();");
+            removeButton.setAttribute("style", "margin-bottom: 20px;");
+            removeButton.setAttribute("class", "btn btn-danger");
+            removeButton.innerText = "Eliminar Artículo";
+
+            var allOrdenFields = document.getElementsByClassName("orden-field");
+            var ordenQuantity = allOrdenFields.length;
+            // Get the element
+            var elem = document.querySelector("#orden-form-container");
+
+            // Create a copy of it
+            var clone = elem.cloneNode(true);
+
+            var inputsInClone = clone.querySelectorAll("input");
+
+            for (var i = 0; i < inputsInClone.length; i++) {
+                inputsInClone[i].value = ''
+            }
+
+            inputsInClone[0].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].codigoArticulo");
+            inputsInClone[1].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].cantidadOrdenada");
+            inputsInClone[2].setAttribute("name", "articulosOrdenados[" + ordenQuantity + "].almacen");
+
+            // remove clone id
+            clone.removeAttribute('id');
+
+            clone.appendChild(removeButton);
+
+            // Inject it into the DOM
+            elem.after(clone);
+        }
+
+    </script>
+
+
+</body>
+
+</html>

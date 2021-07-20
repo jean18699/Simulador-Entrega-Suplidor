@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pedido</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+
+</head>
+
+<body>
+
+    <div class="row">&nbsp;</div>
+
+
+    <div class="row">
+        <h3 class="h3" align="center">Creacion de Orden</h3>
+    </div>
+    <div class="row justify-content-center">
+        <div class="row">
+            <div class="col-3">
+                <form action="/modificarPedido" method="post">
+                    <label class="form-label"><b>Cantidad de Articulos a Ordenar</b></label>
+                    <input type="number" name="cantidadArticulos" th:value="${cantidadActual}" min="1" max="10" step="1"/>
+                    <button type="submit" class="btn btn-success" name="recargar">Aceptar</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">&nbsp;</div>
+        <div class="row">&nbsp;</div>
+
+        <div class="row">
+            <div class="col-12">
+                <form th:action="@{/realizarPedido}" method="post">
+                    <div class="row">
+                        <div class="col-2">
+                            <label class="form-label"><b>Fecha requerida</b></label>
+                            <input type="date" class="form-control" name="fechaOrden" fullwidth required>
+                        </div>
+                    </div>
+
+                    <div class="row">&nbsp;</div>
+
+                    <div th:each="articulo,articuloStat : ${cantidadArticulos}">
+                        <div class="row">
+                            <div class="col-3">
+                                <label class="form-label"><b>Codigo del articulo:</b></label>
+                                <input type="text" class="form-control" th:name="'codigoArticulo' + ${articulo}"
+                                       fullwidth required>
+                            </div>
+
+                            <div class="col-3">
+                                <label class="form-label"><b>Cantidad</b></label>
+                                <input type="number" min="1" class="form-control" th:name="'cantidadOrdenada' + ${articulo}" fullwidth
+                                       required>
+                            </div>
+
+                            <div class="col-3">
+                                <label class="form-label"><b>Codigo Almacen</b></label>
+                                <input type="number" min="1" class="form-control" th:name="'codigoAlmacen' + ${articulo}" fullwidth
+                                       required>
+                            </div>
+
+                        </div>
+                        <div class="row">&nbsp;</div>
+                    </div>
+                    <div class="row">&nbsp;</div>
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn- btn-primary">Finalizar Orden</button>
+                            <button form="volver" name="inventario" type="submit" class="btn btn- btn-danger">Volver al Inventario</button>
+                        </div>
+                    </div>
+                </form>
+                <div class="row">&nbsp;</div>
+
+                <form id="volver" action="/" method="get"></form>
+            </div>
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>
