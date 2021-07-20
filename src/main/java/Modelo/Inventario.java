@@ -285,7 +285,7 @@ public class Inventario {
 
     private void agregarConsumoDiario(ConsumoDiario consumoDiario)
     {
-        System.out.println(consumoDiario.getPromedioConsumo());
+
         listaConsumos.add(consumoDiario);
         Document doc_consumoDiario = new Document();
         doc_consumoDiario
