@@ -117,13 +117,14 @@ public class Inventario {
 
         parametrosAggregate.add(new Document("$project", new Document("_id",0)
                 .append("codigoArticulo", "$codigoArticulo")
+                .append("codigoAlmacen", "$codigoAlmacen")
                 .append("promedioConsumo", "$promedioConsumo")
         ));
 
         List<Document> cursorMovimientos = db_consumoDiario.aggregate(parametrosAggregate).into(new ArrayList<>());
 
         for(Document doc : cursorMovimientos) {
-            consumo = new ConsumoDiario(doc.get("codigoArticulo").toString(), Long.parseLong(doc.get("promedioConsumo").toString()));
+            consumo = new ConsumoDiario(doc.get("codigoArticulo").toString(),Long.parseLong(doc.get("codigoAlmacen").toString()), Long.parseLong(doc.get("promedioConsumo").toString()));
             listaConsumos.add(consumo);
         }
     }
@@ -264,10 +265,11 @@ public class Inventario {
 
                 doc.put("articulo.status", ordenCompraTotal.getArticuloOrdenado().get(i).getStatus());
                 update.put("$set",doc);
-                db_ordenCompra.updateOne(and(filtros),update);
+
                 actualizarCantidadArticuloBD(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo(),ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoAlmacen(),
                         getArticuloByCodigo(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo()).getAlmacen().getBalanceActual());
         }
+        db_ordenCompra.updateMany(and(filtros),update);
     }
 
     public void agregarArticulo(Articulo articulo){
@@ -288,6 +290,7 @@ public class Inventario {
         Document doc_consumoDiario = new Document();
         doc_consumoDiario
                 .append("codigoArticulo", consumoDiario.getCodigoArticulo())
+                .append("codigoAlmacen", consumoDiario.getCodigoAlmacen())
                 .append("promedioConsumo", consumoDiario.getPromedioConsumo());
 
         db_consumoDiario.insertOne(doc_consumoDiario);
@@ -350,7 +353,7 @@ public class Inventario {
                     return getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen);
                 }
             }
-            agregarConsumoDiario(new ConsumoDiario(codigoArticulo,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen)));
+            agregarConsumoDiario(new ConsumoDiario(codigoArticulo,codigoAlmacen,getPromedioConsumoArticulo(codigoArticulo, codigoAlmacen)));
         }
 
 

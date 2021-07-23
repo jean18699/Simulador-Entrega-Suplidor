@@ -84,57 +84,6 @@
     </div>
 
 
-    <!-- Orden inicio -->
-    <!-- <div class="row justify-content-center">
-        <div class="row">
-            <div class="col-12">
-                <form th:action="@{/realizarOrdenCompra}" method="post">
-
-                    <div th:with="course = ${ { 'Java', 'Oracle' } }">
-                        <div th:each="tab, cou:${course}">
-                            <p th:text="${tab}"></p>
-                        </div>
-                    </div>
-
-                    <div id="orden-form-container">
-                        <div class="row">
-
-                            <div class="col-2">
-                                <label class="form-label"><b>Codigo del articulo:</b></label>
-                                <input type="text" class="form-control" name="codigoArticuloOrden" fullwidth required>
-                            </div>
-
-                            <div class="col-2">
-                                <label class="form-label"><b>Fecha de la orden</b></label>
-                                <input type="date" class="form-control" name="fechaOrden" fullwidth required>
-                            </div>
-
-                        </div>
-                        <div class="row">
-
-                            <div class="col-2">
-                                <label class="form-label"><b>Cantidad</b></label>
-                                <input type="number" min="1" class="form-control" name="cantidadOrden" fullwidth
-                                    required>
-                            </div>
-                        </div>
-                        <div class="row">&nbsp;</div>
-                    </div>
-                    <a onclick="addOrdenFields()" class="btn btn-secondary">+</a>
-                    <div class="row">
-                        <div class="col-2">
-                            <button name="realizarOrdenCompra" type="submit" class="btn btn- btn-primary">Realizar
-                                Orden</button>
-                        </div>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-    </div> -->
-    <!-- Orden fin -->
-
-
     <div class="row">&nbsp;</div>
     <div class="row">
         <h2 class="h4" align="left">Balance Inventario</h2>
@@ -169,12 +118,14 @@
             <thead class="thead-light">
                 <tr align="center">
                     <th scope="col">Codigo Articulo</th>
+                    <th scope="col">Almacen</th>
                     <th scope="col">Cantidad</th>
                 </tr>
             </thead>
             <tbody class="table-hover">
                 <tr align="center" th:each="consumo : ${listaConsumos}">
                     <td th:text="${consumo.codigoArticulo}">Pasola</td>
+                    <td th:text="${consumo.codigoAlmacen}">1</td>
                     <td th:text="${consumo.promedioConsumo}">1</td>
                 </tr>
             </tbody>

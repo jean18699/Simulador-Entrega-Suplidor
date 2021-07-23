@@ -33,6 +33,17 @@ public class Main {
         Inventario inv = new Inventario(db);
         new InventarioControlador(app,inv).aplicarRutas();
 
+        if(inv.getArticulos().size() == 0)
+        {
+
+            generarArticulos(inv);
+        }
+
+        if(inv.getArticulosSuplidores().size() == 0)
+        {
+            generarArticuloSuplidor(inv, 10);
+        }
+
 
         //inv.generarOrdenCompra(new ArticuloOrdenado("TEC-001",15,2),LocalDate.parse("2021-07-23"));
 
