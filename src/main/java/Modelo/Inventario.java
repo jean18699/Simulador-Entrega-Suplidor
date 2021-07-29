@@ -232,7 +232,7 @@ public class Inventario {
                 {
                     if(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getStatus() == false)
                     {
-                        Articulo articulo = getArticuloByCodigo(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCodigoArticulo());
+                        Articulo articulo = getArticuloByCodigo_Almacen(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCodigoArticulo(),ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCodigoAlmacen());
                         articulo.getAlmacen().addBalance(ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).getCantidadOrdenada());
                         ordenesCompraTotales.get(i).getArticuloOrdenado().get(j).setStatus(true);
                     }
@@ -267,7 +267,7 @@ public class Inventario {
                 update.put("$set",doc);
 
                 actualizarCantidadArticuloBD(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo(),ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoAlmacen(),
-                        getArticuloByCodigo(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo()).getAlmacen().getBalanceActual());
+                        getArticuloByCodigo_Almacen(ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoArticulo(),ordenCompraTotal.getArticuloOrdenado().get(i).getCodigoAlmacen()).getAlmacen().getBalanceActual());
         }
         db_ordenCompra.updateMany(and(filtros),update);
     }
@@ -392,17 +392,7 @@ public class Inventario {
         return (long) Math.ceil(cantidadConsumida / contador);
     }
 
-    public Articulo getArticuloByCodigo(String codigoArticulo)
-    {
-        for(int i = 0; i < articulos.size(); i++)
-        {
-            if(articulos.get(i).getCodigoArticulo().equalsIgnoreCase(codigoArticulo))
-            {
-                return articulos.get(i);
-            }
-        }
-        return null;
-    }
+
 
     private void actualizarCantidadArticuloBD(String codigoArticulo, long codigoAlmacen, long cantidad)
     {
